@@ -1,21 +1,31 @@
+# SCRIPT DE LA PRACTICA DE APRENDIZAJE COMPUTACIONAL 2024-2025
+
+
+
 
 if(!require("caret")) {
   install.packages("caret", dependencies = c("Depends", "Suggests"))
   require(caret)
 }
 
+# Descargamos la base de datos
 url <- "https://archive.ics.uci.edu/static/public/27/credit+approval.zip"
 download.file(url, destfile = "credit_approval.zip")
 
+# Descomprimimos la base de datos
 unzip("credit_approval.zip")
 
-credit <- read.table("crx.data", header = FALSE, sep = ",")  # Ajusta los parámetros según el archivo
+
+# Cargamos la base de datos, na.string = "?" quitamos los datos con ese valor
+credit <- read.table("crx.data", header = FALSE, sep = ",", na.strings = "?")
 
 
-#setwd("C:\Users\34601\Documents\Fium3\AC\Prácticas\lab\Laboratorios-1")
+# Cargamos en credit.trainIdx la base de datos descargada del UCI
 credit.trainIdx <- readRDS("credit.trainIdx.rds")
-credit.Datos.Train <- credit[credit.trainIdx, ]
-credit.Datos.Test<-credit[-credit.trainIdx,]
+credit.Datos.Train <- credit[credit.trainIdx,]
+credit.Datos.Test <- credit[-credit.trainIdx,]
+
+# Estos comandos es para comprobar que tiene 553 observaciones
 nrow(credit.Datos.Train)
 nrow(credit.Datos.Test)
 
@@ -32,80 +42,59 @@ nrow(credit.Datos.Test)
 # al reemplazar "?" con NA, R sigue considerando "?" como un nivel 
 # válido a menos que uses droplevels() para actualizar los niveles activos.
 
-# Factorizamos todas las categoricas, antes de arreglar errores:
-credit$V1 <- as.factor(credit$V1)
-credit$V4 <- as.factor(credit$V4)
-credit$V5 <- as.factor(credit$V5)
-credit$V6 <- as.factor(credit$V6)
-credit$V7 <- as.factor(credit$V7)
-credit$V9 <- as.factor(credit$V9)
-credit$V10 <- as.factor(credit$V10)
-credit$V12<- as.factor(credit$V12)
-credit$V13 <- as.factor(credit$V13)
-credit$V16 <- as.factor(credit$V16)
+# Visualizamos la tabla
+str(credit)
+
+# Factorizamos todas las categorias ya que nos lo dan como un vector
+credit <- data.frame(lapply(credit,FUN=as.factor))
 
 
-# V1
+# Tratamos la columna V1
+
+# Visualizamos los niveles
 levels(credit$V1)
-# Debemos convertir a NA
-credit$V1[credit$V1 == "?"] <- NA
+
 # Eliminamos niveles no usados
 credit$V1 <- droplevels(credit$V1)
-# Convertir a factor
-credit$V1 <- as.factor(credit$V1)
+
 # Comprobamos
 levels(credit$V1)
 
 # El siguiente con erroes es V2
-#levels(credit$V2)
-credit$V2[credit$V2 == "?"] <- NA
-credit$V2 <- as.numeric(credit$V2)
-#credit$V2 <- droplevels(credit$V2)
-#credit$V2 <- as.factor(credit$V2)
-#levels(credit$V2)
+levels(credit$V2)
+
+
 
 # V4
 # Primero vamos a ver el interrogante
 levels(credit$V4)
-credit$V4[credit$V4 == "?"] <- NA
+
 credit$V4 <- droplevels(credit$V4)
-credit$V4 <- as.factor(credit$V4)
-levels(credit$V4)
+
 # Ahora vamos a añadir un elemento que no aparece y luego lo hacemos factor
 levels(credit$V4)<-c(levels(credit$V4),"t")
 str(credit$V4)
 
 # V5 -> ?
 levels(credit$V5)
-credit$V5[credit$V5 == "?"] <- NA
 credit$V5 <- droplevels(credit$V5)
-credit$V5 <- as.factor(credit$V5)
-levels(credit$V5)
+
 
 # V6 -> ?
 levels(credit$V6)
-credit$V6[credit$V6 == "?"] <- NA
 credit$V6 <- droplevels(credit$V6)
-credit$V6 <- as.factor(credit$V6)
-levels(credit$V6)
+
 
 # V7
 levels(credit$V7)
-credit$V7[credit$V7 == "?"] <- NA
 credit$V7 <- droplevels(credit$V7)
-credit$V7 <- as.factor(credit$V7)
-levels(credit$V7)
+
 
 # V14
-#levels(credit$V14)
-credit$V14[credit$V14 == "?"] <- NA
-credit$V14 <- as.numeric(credit$V14)
-#credit$V14 <- droplevels(credit$V14)
-#credit$V14 <- as.factor(credit$V14)
-#levels(credit$V14)
+levels(credit$V14)
 
-# Ahora vamos a hacer factor a todas las categóricas restantes
-credit$V16 <- as.factor(credit$V16)
+
+
 
 
 # Ahora vamos a renombrar algunas columnas para ganar legibilidad
