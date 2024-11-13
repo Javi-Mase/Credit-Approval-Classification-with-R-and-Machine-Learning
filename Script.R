@@ -121,44 +121,71 @@ str(credit)
 # ANALISIS MONOVARIABLE
 
 
+# Decidimos que es interesante analizar V2 ya que su media y mediana son 
+# parecidas, lo cual sugiere que la distribución puede ser simétrica (cercana a normal).
 
-# Decidimos que es interesante analizar V2 ya que su media y mediana son
-# parecidas y seguramente sea algo simétrica (distribución normal)
+# Generamos un histograma base con la función hist() de R para la variable V2
+# con probability = TRUE para mostrar la densidad en vez de las frecuencias absolutas.
 hist(credit$V2, probability = TRUE, main = "Histograma de V2 con Curva de Densidad")
+
+# Añadimos una línea de densidad para observar la forma de la distribución de V2,
+# usando la función lines() y especificando el color "blue" para la curva.
 lines(density(credit$V2, na.rm = TRUE), col = "blue")
 
-myHist = ggplot(data=credit, aes(credit$V2)) +
-          geom_histogram(col="orange", fill="orange", alpha=0.2,
-                         breaks=seq(0,80,by=5)) +
-          labs(title="Histograma para la variable V2 con linea de densisdad")
+# Creamos un histograma con ggplot2 para la variable V2 del dataframe 'credit',
+# estableciendo aesthetic mapping (aes) para usar V2 en el eje x.
+myHist = ggplot(data = credit, aes(credit$V2)) +
+  # Añadimos un histograma con color de contorno naranja y relleno naranja claro (alpha = 0.2)
+  # y definimos intervalos de 5 unidades usando el argumento breaks.
+  geom_histogram(col = "orange", fill = "orange", alpha = 0.2, breaks = seq(0, 80, by = 5)) +
+  # Agregamos un título al gráfico usando labs().
+  labs(title = "Histograma para la variable V2 con línea de densidad")
 
-
+# Añadimos una línea vertical en el histograma de ggplot para marcar la media de V2
+# usando geom_vline() y especificando la posición con xintercept = mean().
 myHist = myHist + geom_vline(xintercept = mean(credit$V2, na.rm = TRUE), col = "blue")
+
+# Añadimos una línea vertical en el histograma de ggplot para marcar la mediana de V2
+# usando geom_vline() y especificando la posición con xintercept = median().
 myHist = myHist + geom_vline(xintercept = median(credit$V2, na.rm = TRUE), col = "red")
 
-
-
+# Mostramos el gráfico final en ggplot2 con el histograma de V2,
+# junto con las líneas de media (azul) y mediana (roja).
 myHist
 
 
 
 
 
-# Como vemosV2 no sigue exactamente una normal, la media y la mediana no
-# no se parecen realmente.
+# Como vemos, V2 no sigue exactamente una distribución normal, ya que la media 
+# y la mediana no son idénticas, lo que indica una posible asimetría en los datos.
 
-# Para confirmar formalmente la falta de normalidad:
+# Para confirmar formalmente la falta de normalidad, realizaremos un gráfico Q-Q (Quantile-Quantile),
+# que nos permite comparar la distribución de V2 con la distribución teórica normal.
 
-# Plot Q-Q
+# Cargamos la librería 'gridExtra' para facilitar la visualización si queremos combinar
+# gráficos adicionales en una cuadrícula. (Aquí sólo la cargamos en caso de que queramos 
+# usar varios gráficos más adelante en el análisis).
 library(gridExtra)
-p1 = ggplot(data=credit,aes(sample=V2)) +
+
+# Creamos el gráfico Q-Q para V2 utilizando ggplot2.
+p1 = ggplot(data = credit, aes(sample = V2)) +
+  # Añadimos un título al gráfico Q-Q.
   ggtitle("QQ plot para V2") +
+  # Añadimos los puntos del gráfico Q-Q, que compara los cuantiles de la muestra de V2 
+  # con los cuantiles teóricos de una distribución normal.
   geom_qq() + 
+  # Añadimos la línea Q-Q teórica (stat_qq_line), que muestra cómo se deberían 
+  # alinear los puntos si la distribución de V2 fuera normal.
   stat_qq_line() + 
-  xlab("Distribución teórica") + ylab("Distribución muestral")
+  # Etiquetas para los ejes: 'Distribución teórica' en el eje x y 'Distribución muestral' en el eje y.
+  xlab("Distribución teórica") + 
+  ylab("Distribución muestral")
 
-
+# Mostramos el gráfico Q-Q, que permite ver si los puntos se alinean (lo que indicaría normalidad)
+# o si se desvían de la línea (indicando falta de normalidad en la distribución de V2).
 p1
+
 
 # Como vemos hay una desviación de la diagonal. Por tanto, podemos
 # concluir que no se trata de una distribución normal.
@@ -167,74 +194,126 @@ p1
 
 
 
+# Comenzamos con el análisis de la variable categórica V16, 
+# que contiene las clases objetivo o categorías para nuestro análisis.
 
-
-# Comenzamos con el análsis de la variable V16
+# Resumen estadístico de V16, que muestra la frecuencia de cada categoría en la variable.
 summary(credit$V16)
+
+# Verificamos la estructura de V16 para confirmar que es de tipo factor y ver 
+# las categorías presentes en la variable.
 str(credit$V16)
 
-porcent <- prop.table(table(credit$V16))*100
-porcent_table <- cbind(total=table(credit$V16), porcentaje=porcent)
+# Calculamos el porcentaje de cada categoría en V16:
+# Primero, usamos table(credit$V16) para obtener las frecuencias de cada categoría.
+# Luego, aplicamos prop.table() para obtener la proporción relativa, multiplicando por 100 para obtener el porcentaje.
+porcent <- prop.table(table(credit$V16)) * 100
+
+# Creamos una tabla combinada que incluye tanto el número total (frecuencia) como el porcentaje de cada categoría:
+# Usamos cbind() para unir el total (frecuencia) y el porcentaje en una tabla.
+porcent_table <- cbind(total = table(credit$V16), porcentaje = porcent)
+
+# Mostramos el vector de porcentajes, que nos permite ver el porcentaje de cada categoría.
 porcent
 
-# Ahora que nos hacemos una idea del porcentaje total de cada una, vamos
-# a hacer una gráfica de barras para ilustrarlo mejor:
+# Ahora que entendemos la frecuencia y proporción de cada categoría,
+# creamos un diagrama de sectores (o "quesos") para ilustrarlo de forma gráfica.
 
-pie(porcent, main = "Diagrama de Quesos para A16", col = rainbow(length(porcent)))
+# Creamos el gráfico de sectores con pie(), donde usamos el vector de porcentajes.
+# El argumento main establece el título del gráfico y col usa la función rainbow() para aplicar un color diferente
+# a cada sector, igual al número de categorías en V16.
+pie(porcent, main = "Diagrama de Quesos para V16", col = rainbow(length(porcent)))
 
-# Como las categorías tienen frecuencias similares, la distribución es uniforme.
-# Identificamos que no hay categorías outliners. 
+# Con este gráfico de sectores, podemos ver visualmente la distribución de cada categoría en V16.
+# Dado que las categorías tienen frecuencias similares, podemos observar que la distribución es aproximadamente uniforme,
+# y no se identifican categorías con frecuencias extremas (outliers).
 
 
 
-# Analizamos la variable categórica V6
+# Analizamos la variable categórica V6 para obtener una visión general de su distribución y composición.
+
+# Mostramos un resumen estadístico de V6, que nos indica la frecuencia de cada categoría en esta variable.
 summary(credit$V6)
+
+# Verificamos la estructura de V6 para confirmar que es una variable categórica (factor o carácter).
 str(credit$V6)
 
-porcent <- prop.table(table(credit$V6))*100
-porcent_table <- cbind(total=table(credit$V6), porcentaje=porcent)
+# Calculamos el porcentaje de cada categoría en V6:
+# Primero, obtenemos la frecuencia de cada categoría con table(credit$V6).
+# Luego, usamos prop.table() para calcular la proporción relativa de cada categoría y multiplicamos por 100 para expresarlo en porcentaje.
+porcent <- prop.table(table(credit$V6)) * 100
+
+# Creamos una tabla que combina tanto el número total de observaciones (frecuencia) como el porcentaje de cada categoría:
+# cbind() se usa para unir la frecuencia y el porcentaje en una tabla única.
+porcent_table <- cbind(total = table(credit$V6), porcentaje = porcent)
+
+# Mostramos el vector de porcentajes, lo que nos permite visualizar el porcentaje de cada categoría en V6.
 porcent
 
-# Ahora que nos hacemos una idea del porcentaje total de cada una, vamos
-# a hacer una gráfica de barras para ilustrarlo mejor:
+# Ahora que entendemos la distribución de frecuencias y porcentajes de cada categoría, generamos un gráfico de sectores
+# para visualizar estos porcentajes de manera gráfica y comparativa.
 
-pie(porcent, main = "Diagrama de Quesos para A6", col = rainbow(length(porcent)))
+# Creamos el gráfico de sectores (o "quesos") usando la función pie(), pasándole el vector de porcentajes.
+# Establecemos un título con el argumento main y aplicamos diferentes colores a cada categoría usando rainbow().
+pie(porcent, main = "Diagrama de Quesos para V6", col = rainbow(length(porcent)))
 
+# Mostramos nuevamente el vector de porcentajes para recordar los valores antes de proceder con el análisis de los valores NA.
 porcent
+
+# Calculamos la suma del resumen de V6 para confirmar el número total de observaciones, incluyendo posibles NA.
 sum(summary(credit$V6))
-porcentaje_na = 9/690 * 100
+
+# Calculamos el porcentaje de valores NA en la variable V6, asumiendo que hay 9 valores NA de un total de 690 observaciones.
+porcentaje_na <- 9 / 690 * 100
 porcentaje_na
 
-# Siendo realistas la emininación de un 1.3% de NA's es razonable.
+# Concluimos que, siendo aproximadamente un 1.3% de valores faltantes (NA), la eliminación de estas observaciones es razonable,
+# ya que este porcentaje es bajo y es poco probable que afecte significativamente el análisis.
 
 
-# Vamos a analizar V11:
-# Análisis monovariable
+
+# Vamos a analizar la variable V15, que parece tener una distribución con muchos valores cercanos a 0
+# pero también valores atípicos elevados, lo que podría afectar la media.
+
+# Realizamos un resumen estadístico de la variable V15 para obtener una visión general de los valores,
+# incluyendo mínimos, máximos, media y mediana.
 summary(credit$V15)
-# Decidimos que es interesante analizar V2 ya que su media y mediana son
-# parecidas y seguramente sea algo simétrica (distribución normal)
+
+# Generamos un histograma básico para observar la distribución de V15.
+# Usamos probability = TRUE para mostrar el histograma en términos de densidad.
 hist(credit$V15, probability = TRUE,
-              main = "Histograma de V15 con Curva de Densidad")
+     main = "Histograma de V15 con Curva de Densidad")
+
+# Añadimos una curva de densidad a la gráfica para visualizar mejor la forma de la distribución,
+# usando la función density() con na.rm = TRUE para excluir valores NA.
 lines(density(credit$V15, na.rm = TRUE), col = "blue")
 
-# Para que se vea mejor, vamos a recortar la mayoría de los 
-# valores altos para poder al menos ver los pequeños
-myHist = ggplot(data=credit, aes(credit$V15)) +
-  geom_histogram(col="orange", fill="orange", alpha=0.2,
-                 breaks=seq(0,1000,by=10)) +
-  labs(title="Histograma para la variable V15 con linea de densisdad")
+# Observamos que muchos valores altos de V15 hacen difícil ver los valores menores.
+# Para solucionar esto, usamos ggplot2 para crear un histograma que enfoque la escala en valores menores,
+# estableciendo los intervalos hasta 1000 (ajustable según el rango de interés).
 
+# Creamos un histograma de V15 con ggplot2, aplicando intervalos de 10 en el rango de 0 a 1000.
+myHist = ggplot(data = credit, aes(credit$V15)) +
+  geom_histogram(col = "orange", fill = "orange", alpha = 0.2, breaks = seq(0, 1000, by = 10)) +
+  labs(title = "Histograma para la variable V15 con línea de densidad")
 
+# Añadimos una línea vertical azul en el histograma para indicar la media de V15,
+# utilizando mean() y especificando que se ignoren valores NA.
 myHist = myHist + geom_vline(xintercept = mean(credit$V15, na.rm = TRUE), col = "blue")
+
+# Añadimos una línea vertical roja para indicar la mediana de V15, usando median().
 myHist = myHist + geom_vline(xintercept = median(credit$V15, na.rm = TRUE), col = "red")
+
+# Mostramos el gráfico final en ggplot2, que incluye el histograma de V15 y las líneas de media y mediana.
 myHist
 
+# Comentario sobre la distribución:
+# Al observar el histograma, vemos que la mayoría de los valores están cerca de 0, lo que indica una
+# acumulación de valores bajos. Esto se confirma con el resumen estadístico: la media es de 1017.4 
+# y la mediana es 5.0, lo que significa que la mayoría de los valores son pequeños, 
+# pero hay algunos valores muy altos (outliers) que elevan la media, creando una diferencia significativa
+# entre media y mediana.
 
-myHist
-# Como podemos ver la mayoría de los valores están cercanos al 0, hecho que podemos
-# intuir viendo que la media es 1017.4 y la mediana es 5.0. Esto es porque la mayoría
-# de los valores son 0, pero como luego hay valores muy altos (pocos) la media se
-# dispara. Haciendo que sean muy distintos.
 
 
 library(gridExtra)
