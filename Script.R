@@ -12,11 +12,12 @@ if(!require("caret")) {
 url <- "https://archive.ics.uci.edu/static/public/27/credit+approval.zip"
 download.file(url, destfile = "credit_approval.zip")
 
+
 # Descomprimimos la base de datos
 unzip("credit_approval.zip")
 
 
-# Cargamos la base de datos, na.string = "?" quitamos los datos con ese valor
+# Cargamos la base de datos, na.string = "?" quitamos los datos con ese valor y lo sustituye por NA
 credit <- read.table("crx.data", header = FALSE, sep = ",", na.strings = "?")
 
 
@@ -25,9 +26,11 @@ credit.trainIdx <- readRDS("credit.trainIdx.rds")
 credit.Datos.Train <- credit[credit.trainIdx,]
 credit.Datos.Test <- credit[-credit.trainIdx,]
 
+
 # Estos comandos es para comprobar que tiene 553 observaciones
 nrow(credit.Datos.Train)
 nrow(credit.Datos.Test)
+
 
 # El resultado que ves al ejecutar summary(credit$V16) sugiere que V16, que debería 
 # ser la columna de clase con valores + o -, está tratada como un vector de caracteres 
