@@ -31,6 +31,9 @@ credit.Datos.Test <- credit[-credit.trainIdx,]
 nrow(credit.Datos.Train)
 nrow(credit.Datos.Test)
 
+# Muestra la cantidad de valores NA por columna
+# Esto es por si alguna columna tiene demasiados valores NA para eliminarla
+colSums(is.na(credit))  
 
 # El resultado que ves al ejecutar summary(credit$V16) sugiere que V16, que debería 
 # ser la columna de clase con valores + o -, está tratada como un vector de caracteres 
@@ -48,8 +51,8 @@ nrow(credit.Datos.Test)
 # Visualizamos la tabla
 str(credit)
 
-# Factorizamos todas las categorias ya que nos lo dan como un vector
-credit <- data.frame(lapply(credit,FUN=as.factor))
+# Convertir automáticamente columnas de tipo 'chr' a 'factor'
+credit[sapply(credit, is.character)] <- lapply(credit[sapply(credit, is.character)], as.factor)
 
 
 # Tratamos la columna V1
@@ -115,8 +118,10 @@ str(credit)
 
 
 
-# Análisis monovariable
-summary(credit)
+# ANALISIS MONOVARIABLE
+
+
+
 # Decidimos que es interesante analizar V2 ya que su media y mediana son
 # parecidas y seguramente sea algo simétrica (distribución normal)
 hist(credit$V2, probability = TRUE, main = "Histograma de V2 con Curva de Densidad")
@@ -134,6 +139,11 @@ myHist = myHist + geom_vline(xintercept = median(credit$V2, na.rm = TRUE), col =
 
 
 myHist
+
+
+
+
+
 # Como vemosV2 no sigue exactamente una normal, la media y la mediana no
 # no se parecen realmente.
 
@@ -344,3 +354,4 @@ ggplot(data = melted_data, aes(x = Value, color = V16, fill = V16)) +
   ylab("Densidad") +  # Etiqueta para el eje y
   xlab("Valores") +   # Etiqueta para el eje x
   ggtitle("Densidad de Valores por Especie")  # Título del gráfico
+
