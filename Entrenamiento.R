@@ -18,12 +18,12 @@ unzip("credit_approval.zip")
 
 
 # Cargamos la base de datos, na.string = "?" quitamos los datos con ese valor y lo sustituye por NA
-credit <- read.table("crx.data", header = FALSE, sep = ",", na.strings = "?")
+#credit <- read.table("crx.data", header = FALSE, sep = ",", na.strings = "?")
 
 
 # Cargamos en credit.trainIdx la base de datos descargada del UCI
 credit.trainIdx <- readRDS("credit.trainIdx.rds")
-credit.Datos.Train <- credit[credit.trainIdx,]
+credit <- credit[credit.trainIdx,]
 credit.Datos.Test <- credit[-credit.trainIdx,]
 
 
