@@ -720,5 +720,97 @@ datos.input <- credit
 # Identificamos los nombres de las columnas altamente correlacionadas (umbral: 0.85)
 library(caret)
 eliminar_columnas <- labels(matriz_cor)[[1]][findCorrelation(matriz_cor, cutoff = 0.85)]
+eliminar_columnas
 
 
+# Vamos ahora a hacer dummy las variables para poder aplicar modelos avanzados de
+# entrenamiento
+
+# Crear un modelo de dummy variables para todo el dataset
+dummy_model <- dummyVars(~ ., data = credit, fullRank = TRUE)
+
+# Aplicar el modelo para generar las variables dummy
+credit_dummies <- data.frame(predict(dummy_model, newdata = credit))
+
+# Verificar las dimensiones y las primeras filas del dataset resultante
+print(dim(credit_dummies))  # Dimensiones del nuevo dataset
+head(credit_dummies)        # Primeras filas
+
+#########################################################################
+#########################################################################
+#########################################################################
+# Entrenamos el modelo
+
+# Cargar el paquete e1071
+if (!require("e1071")) install.packages("e1071")
+library(e1071)
+
+# Entrenar el modelo SVM
+svm_model <- svm(V16 ~ ., data = credit, kernel = "radial")
+
+# Ver detalles del modelo
+print(svm_model)
+
+
+# Vamos a ver qué tal con el TESTING
+# Quitamos los nulos :)
+credit.Datos.Test <- na.omit(credit.Datos.Test)
+
+# Cambiamos el nombre de las columnas de testing:
+colnames(credit.Datos.Test)[colnames(credit.Datos.Test) == "V1"] <- "Genero"
+colnames(credit.Datos.Test)[colnames(credit.Datos.Test) == "V2"] <- "Edad"
+colnames(credit.Datos.Test)[colnames(credit.Datos.Test) == "V3"] <- "Deuda"
+colnames(credit.Datos.Test)[colnames(credit.Datos.Test) == "V4"] <- "EstadoCivil"
+colnames(credit.Datos.Test)[colnames(credit.Datos.Test) == "V8"] <- "AnyosContratado"
+colnames(credit.Datos.Test)[colnames(credit.Datos.Test) == "V10"] <- "Empleado"
+colnames(credit.Datos.Test)[colnames(credit.Datos.Test) == "V11"] <- "Solvencia"
+colnames(credit.Datos.Test)[colnames(credit.Datos.Test) == "V13"] <- "composicionPoblacion"
+# Asegurar que la variable objetivo (V16) sea un factor en el conjunto de prueba
+credit.Datos.Test$V16 <- as.factor(credit.Datos.Test$V16)
+
+# Predecir en el conjunto de validación
+svm_predictions_test <- predict(svm_model, credit.Datos.Test)
+
+# Ver las primeras predicciones
+head(svm_predictions_test)
+
+
+# Evaluamos el rendimiento del modelo:
+# Crear la matriz de confusión
+confusionMatrix <- table(Predicted = svm_predictions_test, Actual = credit.Datos.Test$V16)
+
+# Mostrar la matriz de confusión
+print(confusionMatrix)
+
+# Calcular precisión
+accuracy <- sum(diag(confusionMatrix)) / sum(confusionMatrix)
+print(paste("Accuracy:", round(accuracy * 100, 2), "%"))
+
+
+
+# Ajustar Hiperparámetros en SVM (Cost y Gamma)
+# El ajuste de hiperparámetros es fundamental para mejorar el rendimiento de los 
+# modelos SVM, especialmente al usar un kernel no lineal como el radial 
+# (kernel = "radial"). 
+
+
+# Ajustar hiperparámetros con tune()
+# Ajustar cost con un rango más amplio
+tune_results <- tune(svm, V16 ~ ., data = credit,
+                      kernel = "linear",
+                      ranges = list(cost = c(0.1, 1, 10),
+                                    gamma = c(0.01, 0.1, 1)))
+
+# Ver los mejores parámetros
+print(tune_results$best.parameters)
+
+
+# Entrenar el modelo con los mejores parámetros
+svm_model_tuned <- tune_results$best.model
+#Predecir en el conjunto de validación
+svm_predictions_test_tuned <- predict(svm_model_tuned, credit.Datos.Test)
+# Evaluar el modelo ajustado
+confusionMatrix_tuned <- table(Predicted = svm_predictions_test_tuned, Actual = credit.Datos.Test$V16)
+# Calcular precisión
+accuracy_tuned <- sum(diag(confusionMatrix_tuned)) / sum(confusionMatrix_tuned)
+print(paste("Tuned Accuracy:", round(accuracy_tuned * 100, 2), "%"))
