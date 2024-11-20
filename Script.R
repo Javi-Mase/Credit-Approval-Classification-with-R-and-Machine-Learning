@@ -191,7 +191,7 @@ p1
 # concluir que no se trata de una distribución normal.
 
 
-
+#------------------------------------------------------------------------------
 
 
 # Comenzamos con el análisis de la variable categórica V16, 
@@ -228,7 +228,7 @@ pie(porcent, main = "Diagrama de Quesos para V16", col = rainbow(length(porcent)
 # Dado que las categorías tienen frecuencias similares, podemos observar que la distribución es aproximadamente uniforme,
 # y no se identifican categorías con frecuencias extremas (outliers).
 
-
+#----------------------------------------------------------------------------
 
 # Analizamos la variable categórica V6 para obtener una visión general de su distribución y composición.
 
@@ -270,7 +270,7 @@ porcentaje_na
 # Concluimos que, siendo aproximadamente un 1.3% de valores faltantes (NA), la eliminación de estas observaciones es razonable,
 # ya que este porcentaje es bajo y es poco probable que afecte significativamente el análisis.
 
-
+#-------------------------------------------------------------------------------
 
 # Vamos a analizar la variable V15, que parece tener una distribución con muchos valores cercanos a 0
 # pero también valores atípicos elevados, lo que podría afectar la media.
@@ -336,6 +336,10 @@ library(reshape2)
 # creando una estructura de datos para usar lattice con facilidad con "melt()"
 library(reshape2)
 # creando una estructura de datos para usar lattice con facilidad con "melt()"
+
+
+#----------------------------------------------------------------------------
+
 
 melted_data <- melt(credit, id.vars = "V16", measure.vars = "V2", 
                     variable.name = "Variable", value.name = "Value")
@@ -434,7 +438,7 @@ ggplot(data = melted_data, aes(x = Value, color = V16, fill = V16)) +
   xlab("Valores") +   # Etiqueta para el eje x
   ggtitle("Densidad de Valores por Especie")  # Título del gráfico
 
-
+#------------------------------------------------------------------------------
 ###########################################################################
 ###########################################################################
 # Limpiamos datos
