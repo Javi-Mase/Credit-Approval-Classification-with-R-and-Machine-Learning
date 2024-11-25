@@ -790,8 +790,8 @@ theme(legend.title = element_blank())
 En caso de no querer incluir la normalización center scale en nuestros datos, comentar esto:
 
 ```{r}
-#credit.Datos.Train <- credit.normalizadasCS[credit.normalizadasCS$Origen == "train", ]
-#credit.Datos.Test <- credit.normalizadasCS[credit.normalizadasCS$Origen == "test", ]
+credit.Datos.Train <- credit.normalizadasCS[credit.normalizadasCS$Origen == "train", ]
+credit.Datos.Test <- credit.normalizadasCS[credit.normalizadasCS$Origen == "test", ]
 ```
 
 RANGE:\
@@ -848,9 +848,17 @@ credit.Var.Entrada.Continuas <- which(sapply(credit.Datos.Train[, -ncol(credit.D
 credit.PreProc.Pca.Mod<-preProcess(credit.Datos.Train[credit.Var.Entrada.Continuas],method=c("pca"),thresh = 0.9)
 credit.Datos.Train.Transf.PCA <- predict(credit.PreProc.Pca.Mod, credit.Datos.Train)
 credit.Datos.Test.Transf.PCA <- predict(credit.PreProc.Pca.Mod, credit.Datos.Test)
-credit.Datos.Todo.Transf.PCA <- predict(credit.PreProc.Pca.Mod, credit.Datos.Todo)
+
 print(credit.PreProc.Pca.Mod)
-summary(credit.Datos.Todo.Transf.PCA)
+summary(credit.Datos.Train.Transf.PCA)
+summary(credit.Datos.Test.Transf.PCA)
+```
+
+En caso de NO querer incluir PCA, comentar el siguiente código:
+
+```{r}
+credit.Datos.Train <- credit.Datos.Train.Transf.PCA
+credit.Datos.Test <- credit.Datos.Test.Transf.PCA
 ```
 
 ICA:\
@@ -870,4 +878,76 @@ credit.Datos.Test.Transf.ICA <- predict(credit.PreProc.Ica.Mod, credit.Datos.Tes
 print(credit.PreProc.Ica.Mod)
 summary(credit.Datos.Train.Transf.ICA)
 summary(credit.Datos.Test.Transf.ICA)
+```
+
+En caso de NO querer incluir ICA, comentar el siguiente código:
+
+```{r}
+#credit.Datos.Train <- credit.Datos.Train.Transf.ICA
+#credit.Datos.Test <- credit.Datos.Test.Transf.ICA
+```
+
+PRIMER ENTRENAMIENTO DE GBM:\
+[lista de requisitos probados:]{.underline}
+
+ 1. Imputación estándar
+
+2. dummies
+
+3. Normalización CENTER SCALE (NO ME DEJA)
+
+4. PCA (NO ME DEJA AL NORMALIZAR)\
+
+```{r}
+# Antes de nada:
+
+# Eliminar la última columna del conjunto de entrenamiento
+credit.Datos.Train <- credit.Datos.Train[, -ncol(credit.Datos.Train)]
+
+# Eliminar la última columna del conjunto de prueba
+credit.Datos.Test <- credit.Datos.Test[, -ncol(credit.Datos.Test)]
+
+
+library(caret)
+
+# Definir las variables de entrada y salida
+credit.Var.Salida.Usada <- "V16"  # Cambiar según tu variable de salida
+credit.Vars.Entrada.Usadas <- setdiff(names(credit.Datos.Train), credit.Var.Salida.Usada)
+
+# Configurar el modelo GBM
+set.seed(1234)
+credit.modelo.gbm <- train(
+  credit.Datos.Train[credit.Vars.Entrada.Usadas], # Variables de entrada
+  credit.Datos.Train[[credit.Var.Salida.Usada]], # Variable de salida
+  method = "gbm",                                # Método GBM
+  trControl = trainControl(method = "cv", number = 5), # Validación cruzada
+  verbose = FALSE                                # Evitar logs innecesarios
+)
+
+# Ver los detalles del modelo entrenado
+print(credit.modelo.gbm)
+
+# Predecir en el conjunto de prueba
+credit.Pred.Test <- predict(credit.modelo.gbm, credit.Datos.Test)
+
+# Evaluar el rendimiento en el conjunto de prueba
+confusionMatrix(credit.Pred.Test, credit.Datos.Test[[credit.Var.Salida.Usada]])
+
+```
+
+Vemos procentaje:\
+
+```{r}
+# Realizar predicciones en el conjunto de prueba
+predicciones_test <- predict(credit.modelo.gbm, credit.Datos.Test)
+
+# Generar la matriz de confusión
+matriz_confusion <- confusionMatrix(predicciones_test, credit.Datos.Test[[credit.Var.Salida.Usada]])
+
+# Extraer el porcentaje de acierto
+porcentaje_acierto <- matriz_confusion$overall["Accuracy"] * 100
+
+# Mostrar el porcentaje de acierto
+print(paste("Porcentaje de acierto:", round(porcentaje_acierto, 2), "%"))
+
 ```
