@@ -890,6 +890,7 @@ En caso de NO querer incluir ICA, comentar el siguiente código:
 PRIMER ENTRENAMIENTO DE GBM:\
 [lista de requisitos probados:]{.underline}
 
+<<<<<<< HEAD
 1.  Imputación estándar
 
 2.  dummies
@@ -897,6 +898,15 @@ PRIMER ENTRENAMIENTO DE GBM:\
 3.  Normalización CENTER SCALE (NO ME DEJA)
 
 4.  PCA (NO ME DEJA AL NORMALIZAR)\
+=======
+ 1. Imputación estándar
+
+2. dummies
+
+3. Normalización CENTER SCALE (NO ME DEJA)
+
+4. PCA (NO ME DEJA AL NORMALIZAR)\
+>>>>>>> 1e420ef350695bcdc7e13462f4b6de13bbdb6900
 
 ```{r}
 # Antes de nada:
