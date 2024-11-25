@@ -11,9 +11,6 @@ output:
     toc_float: yes
 ---
 
-
-
-
 ```{r, echo=FALSE, include=FALSE}
 # Lista de paquetes necesarios
 paquetes <- c("base", "caret", "datasets", "ggplot2", 
@@ -31,9 +28,6 @@ if (length(paquetes_faltantes) > 0) {
 # Cargar todos los paquetes
 lapply(paquetes, library, character.only = TRUE)
 
-
-
-
 # Cargamos la base de datos, na.string = "?" quitamos los datos con ese valor y lo sustituimos por NA
 credit <- read.table("crx.data", header = FALSE, sep = ",", na.strings = "?")
 
@@ -45,9 +39,9 @@ credit.Datos.Test <- credit[-credit.trainIdx,]
 
 
 
-
 # Introducción
-EL documento ha cargado automaticamente la base de datos, ahora vamos a ir haciendo un preprocesado de los datos, primero  el siguiente comando muestra la cantidad de valores NA por columna:
+
+El documento ha cargado automáticamente la base de datos, ahora vamos a ir haciendo un preprocesado de los datos, primero el siguiente comando muestra la cantidad de valores NA por columna:
 
 ```{r}
 colSums(is.na(credit))
@@ -62,25 +56,21 @@ credit[sapply(credit, is.character)] <- lapply(credit[sapply(credit, is.characte
 
 ```
 
-
 Despues de esto empezamos especulando el significado de cada uno de las variables. Esto lo vamos a hacer buscando en internet el significado esperado de cada una, haciendo suposiciones y comprobando que el análisis de cada una de las variables sea coherente.
-
 
 # Análisis de Variables
 
-1. **V1**:  Se trata de una variable categórica, con valores en el dominio `{a, b}`. Tiene un significado que podemos intuir de forma relativamente fácil. De hecho, podemos pensar que "a" se trata de mujeres y "b" de hombres. Esto se debe a que la base es de los años 80, y en esa época era más común que los hombres soliciten créditos, y en el caso de las mujeres, seguramente las que lo solicitaban eran las que estaban solteras. Se trata de una época con pensamientos cerrados, y esto es un simple estudio estadístico.
-   
+1.  **V1**: Se trata de una variable categórica, con valores en el dominio `{a, b}`. Tiene un significado que podemos intuir de forma relativamente fácil. De hecho, podemos pensar que "a" se trata de mujeres y "b" de hombres. Esto se debe a que la base es de los años 80, y en esa época era más común que los hombres soliciten créditos, y en el caso de las mujeres, seguramente las que lo solicitaban eran las que estaban solteras. Se trata de una época con pensamientos cerrados, y esto es un simple estudio estadístico.
+
 ```{r}
 # Eliminamos niveles no usados
 credit$V1 <- droplevels(credit$V1)
 summary(credit$V1)
 ```
-   
-Como podemos comprobar nuestra suposición puede ser cierta.
-   
-   
-2. **V2**: Esta columna puede ser la edad del cliente. Es continuo ya que los días los puede estar teniendo en cuenta de alguna forma. Sin embargo, en Estados Unidos los menores no pueden solicitar un crédito y hay algunos valores menores de 18. Vamos a calcular cuantos:
 
+Como podemos comprobar nuestra suposición puede ser cierta.
+
+2.  **V2**: Esta columna puede ser la edad del cliente. Es continuo ya que los días los puede estar teniendo en cuenta de alguna forma. Sin embargo, en Estados Unidos los menores no pueden solicitar un crédito y hay algunos valores menores de 18. Vamos a calcular cuantos:
 
 ```{r}
 num_menores_18 <- sum(credit$V2 < 18, na.rm = TRUE)
@@ -89,9 +79,7 @@ porcentaje_menores_18 <- (num_menores_18 / total_valores) * 100
 porcentaje_menores_18
 ```
 
-Comprobamos que aproximadamente el 5\% de los clientes son menores de edad, al no ser una cifra muy significativa, podemos asumir que son valores fuera de rango, y que efectivamente podríamos estar ante la variable de edad. En siguientes apartados veremos qué hacer con estos valores.
-
-
+Comprobamos que aproximadamente el 5% de los clientes son menores de edad, al no ser una cifra muy significativa, podemos asumir que son valores fuera de rango, y que efectivamente podríamos estar ante la variable de edad. En siguientes apartados veremos qué hacer con estos valores.
 
 (codigo referente al analisis monovariable de v2 ordenarlo)
 
@@ -162,35 +150,42 @@ p1 = ggplot(data = credit, aes(sample = V2)) +
 p1
 
 
-# Como vemos hay una desviación de la diagonal. Por tanto, podemos
-# concluir que no se trata de una distribución normal.
+
 ```
 
+Como vemos hay una desviación de la diagonal. Por tanto, podemos concluir que no se trata de una distribución normal.
 
 
-
-3. **V3**: Nuestra especulación en cuanto a esta columna es que se trata de la cantidad de deuda que tienen los clientes. Sin embargo, no tiene sentido que el que más debe, el total sea 28\$:
+3.  **V3**: Nuestra especulación en cuanto a esta columna es que se trata de la cantidad de deuda que tienen los clientes. Sin embargo, no tiene sentido que el que más debe, el total sea 28\$:
 
 ```{r}
 summary(credit$V3)
 ```
 
-Por ello, pensamos que pueda estar dividida por \(10^{3}\) o similar. De igual manera no nos importa la proporción que lleve.
+Por ello, pensamos que pueda estar dividida por $10^{3}$ o similar. De igual manera no nos importa la proporción que lleve.
 
-
-4. **V4**: En esta columna podríamos estar ante el estado civil de cada uno de los clientes. Siendo cada uno de los valores \{l=desconocido, u=casados, y=solteros, t=otros\}. Si calculamos el porcentaje de clientes casados:
+4.  **V4**: En esta columna podríamos estar ante el estado civil de cada uno de los clientes. Siendo cada uno de los valores {l=desconocido, u=casados, y=solteros, t=otros}. Si calculamos el porcentaje de clientes casados:
 
 ```{r}
+
+# Eliminamos niveles no usados
+credit$V4 <- droplevels(credit$V4)
+
+# Ahora vamos a añadir un elemento que no aparece y luego lo hacemos factor
+levels(credit$V4)<-c(levels(credit$V4),"t")
+str(credit$V4)
+
+
+
 num_mayores_18 <- sum(credit$V2 > 18, na.rm = TRUE)
 num_casados <- sum(credit$V4 == "u", na.rm = TRUE)
 porcent_casados <- (num_casados/num_mayores_18) * 100
 porcent_casados
 ```
 
-Si buscamos en internet en torno al 70\% de la población adulta en Estados Unidos estaba casada. Como podemos ver se aproxima mucho a nuestro resultado. Esa pequeña diferencia puede deberse a que muchos matrimonios al casarse, compran una casa, y piden un préstamo para ello.
+Si buscamos en internet en torno al 70% de la población adulta en Estados Unidos estaba casada. Como podemos ver se aproxima mucho a nuestro resultado. Esa pequeña diferencia puede deberse a que muchos matrimonios al casarse, compran una casa, y piden un préstamo para ello.
 
-
-4. **V6**
+4.  **V6**
 
 ```{r}
 # Analizamos la variable categórica V6 para obtener una visión general de su distribución y composición.
@@ -237,9 +232,7 @@ porcentaje_na
 
 ```
 
-
-
-5. **V8**:  Esta variable creemos que puede ser los años de empleo. Si nos fijamos en los valores de las columnas de V8 (años contratado) y las comparamos por filas con las de V2 (edad) nos podemos dar cuenta que nunca va a superar la edad. De hecho en muchos casos tiene coherencia la edad con el número de años contratado. Esto puede ser un claro indicativo que estamos ante una buena especulación. Aún así vamos a verlo en R:
+5.  **V8**: Esta variable creemos que puede ser los años de empleo. Si nos fijamos en los valores de las columnas de V8 (años contratado) y las comparamos por filas con las de V2 (edad) nos podemos dar cuenta que nunca va a superar la edad. De hecho en muchos casos tiene coherencia la edad con el número de años contratado. Esto puede ser un claro indicativo que estamos ante una buena especulación. Aún así vamos a verlo en R:
 
 ```{r}
 summary(credit$V8)
@@ -253,30 +246,30 @@ summary(credit$V2)
 
 ¿Aporta algo este resumen? Por supuesto, de hecho tenemos la razón de que nuestra variable de años contratados presente datos tan bajos. Estamos ante un conjunto de clientes jóvenes, y como es lógico no tienen muchos años como empleados.
 
-
-6. **V10**:  Esta variable hemos podido intuir junto a alguna investigaciones que representa si un cliente está actualmente empleado. Esto es muy interesante de cara al análisis por temas obvios de solvencia. Suponemos que {f=empleado, t=no empleado}. Pero, ¿realmente es consistente la cifra de empleados? Sí, lo vemos con:
+6.  **V10**: Esta variable hemos podido intuir junto a alguna investigaciones que representa si un cliente está actualmente empleado. Esto es muy interesante de cara al análisis por temas obvios de solvencia. Suponemos que {f=empleado, t=no empleado}. Pero, ¿realmente es consistente la cifra de empleados? Sí, lo vemos con:
 
 ```{r}
 porcentajes_empleados <- prop.table(summary(credit$V10))*100
 porcentajes_empleados
 ```
 
-Según hemos podido encontrar en los años ochenta en Estados Unidos había un 60\% de población activa. Esto es de gran utilidad para hacer una correlación junto a V16 (aprobada/rechazada).
+Según hemos podido encontrar en los años ochenta en Estados Unidos había un 60% de población activa. Esto es de gran utilidad para hacer una correlación junto a V16 (aprobada/rechazada).
 
-
-7. **V11**:  Esta variable es posible que sea ``credit score", que es es una expresión numérica que representa la solvencia de un individuo. Según hemos podido comprobar también ha sido retocada (los valores), ya que los valores no siguen la notación habitual. Pero sí sabemos que cuanto mayor es el valor, mayor es la solvencia. En la Figura~\ref{fig:credit_score} podemos encontrar un gráfico interesante que ilustra este concepto:
+7.  **V11**: Esta variable es posible que sea \`\`credit score", que es es una expresión numérica que representa la solvencia de un individuo. Según hemos podido comprobar también ha sido retocada (los valores), ya que los valores no siguen la notación habitual. Pero sí sabemos que cuanto mayor es el valor, mayor es la solvencia. En la Figura\~\ref{fig:credit_score} podemos encontrar un gráfico interesante que ilustra este concepto:
 
 ![Descripción de la imagen](imagenes/creditScorepx.png)
 
 Es importante conocer la forma que van a tener nuestros datos de esta variable:
 
 ```{r}
-summary(credit$V11)
-hist(credit$V11, breaks = seq(min(credit$V11, na.rm = TRUE), max(credit$V11, na.rm =  
-                TRUE), by = 1),
-                + main = "Histograma de Credit Score V11",
-                + xlab = "Valores de V11", ylab = "Frecuencia",
-                col = "lightblue", border = "black")
+hist(credit$V11, 
+     breaks = seq(min(credit$V11, na.rm = TRUE), max(credit$V11, na.rm = TRUE), by = 1),
+     main = "Histograma de Credit Score V11",
+     xlab = "Valores de V11", 
+     ylab = "Frecuencia",
+     col = "lightblue", 
+     border = "black")
+
 ```
 
 La mediana indica que hay muchos ceros. Y con el histograma vemos que esto efectivamente es así:
@@ -285,13 +278,13 @@ grafico v11
 
 Lo deberíamos de tener en cuenta a la hora de hacer el análisis multivariable.
 
-8. **V13**: Pasamos a analizar la última variable interesante para nuestro análisis. Esta variable representa composición de la población, clasificando en: cuidadano, residente permenente o inmigrante. Según consta en los datos, la distribución es 86\%, 2.6\% y 6.2\%. ¿Se aproximará?
+8.  **V13**: Pasamos a analizar la última variable interesante para nuestro análisis. Esta variable representa composición de la población, clasificando en: cuidadano, residente permenente o inmigrante. Según consta en los datos, la distribución es 86%, 2.6% y 6.2%. ¿Se aproximará?
 
 ```{r}
 prop.table(summary(credit$V13))*100
 ```
 
-Como vemos son muy parecidos. Esto es un indicativo significativo. Concluimos que \{g=ciudadano, p=residente permanente, s=inmigrante\}.
+Como vemos son muy parecidos. Esto es un indicativo significativo. Concluimos que {g=ciudadano, p=residente permanente, s=inmigrante}.
 
 # Razonamiento para comparar V14 y V16
 
@@ -308,8 +301,7 @@ library(ggplot2)
     scale_fill_manual(values = c("skyblue", "orange"))
 ```
 
-
-8. **V15**
+8.  **V15**
 
 ```{r}
 # Vamos a analizar la variable V15, que parece tener una distribución con muchos valores cercanos a 0
@@ -380,25 +372,30 @@ library(reshape2)
 
 ```
 
+9.  **V16** Comenzamos con el análisis de la variable categórica V16, que contiene las clases objetivo o categorías para nuestro análisis.
 
-
-9. **V16**
+Ahora vamos a renombrar algunas columnas para ganar legibilidad
 
 ```{r}
-# Comenzamos con el análisis de la variable categórica V16, 
-# que contiene las clases objetivo o categorías para nuestro análisis.
+levels(credit$V16) <- c("rechazada", "aprobada")
+```
 
-# Resumen estadístico de V16, que muestra la frecuencia de cada categoría en la variable.
-summary(credit$V16)
+Verificamos la estructura de V16 para confirmar que es de tipo factor y ver las categorías presentes en la variable.
 
-# Verificamos la estructura de V16 para confirmar que es de tipo factor y ver 
-# las categorías presentes en la variable.
+```{r}
 str(credit$V16)
+```
 
-# Calculamos el porcentaje de cada categoría en V16:
+Calculamos el porcentaje de cada categoría en V16:
+
+```{r}
 # Primero, usamos table(credit$V16) para obtener las frecuencias de cada categoría.
 # Luego, aplicamos prop.table() para obtener la proporción relativa, multiplicando por 100 para obtener el porcentaje.
 porcent <- prop.table(table(credit$V16)) * 100
+```
+
+
+```{r}
 
 # Creamos una tabla combinada que incluye tanto el número total (frecuencia) como el porcentaje de cada categoría:
 # Usamos cbind() para unir el total (frecuencia) y el porcentaje en una tabla.
@@ -406,25 +403,28 @@ porcent_table <- cbind(total = table(credit$V16), porcentaje = porcent)
 
 # Mostramos el vector de porcentajes, que nos permite ver el porcentaje de cada categoría.
 porcent
+```
 
-# Ahora que entendemos la frecuencia y proporción de cada categoría,
-# creamos un diagrama de sectores (o "quesos") para ilustrarlo de forma gráfica.
+Ahora que entendemos la frecuencia y proporción de cada categoría, creamos un diagrama de sectores (o "quesos") para ilustrarlo de forma gráfica.
 
-# Creamos el gráfico de sectores con pie(), donde usamos el vector de porcentajes.
+Creamos el gráfico de sectores con pie(), donde usamos el vector de porcentajes.
+
+```{r}
+
 # El argumento main establece el título del gráfico y col usa la función rainbow() para aplicar un color diferente
 # a cada sector, igual al número de categorías en V16.
 pie(porcent, main = "Diagrama de Quesos para V16", col = rainbow(length(porcent)))
-
-# Con este gráfico de sectores, podemos ver visualmente la distribución de cada categoría en V16.
-# Dado que las categorías tienen frecuencias similares, podemos observar que la distribución es aproximadamente uniforme,
-# y no se identifican categorías con frecuencias extremas (outliers).
+```
 
 
+Con este gráfico de sectores, podemos ver visualmente la distribución de cada categoría en V16.
+Dado que las categorías tienen frecuencias similares, podemos observar que la distribución es aproximadamente uniforme y no se identifican categorías con frecuencias extremas (outliers).
 
 
 
-melted_data <- melt(credit, id.vars = "V16", measure.vars = "V2", 
-                    variable.name = "Variable", value.name = "Value")
+```{r}
+
+melted_data <- melt(credit, id.vars = "V16", measure.vars = "V2", variable.name = "Variable", value.name = "Value")
 melted_data
 
 library(ggplot2)
@@ -433,16 +433,14 @@ ggplot(melted_data, aes(x = V16, y = Value)) +
   xlab("Categoría de V16") +
   ylab("Valores de V2") +
   ggtitle("Distribución de V2 por Categoría de V16")
+```
+
+Observando el boxplot podemos decir que ambos tienen una distribución simétrica. En cuanto a los outliners, no hay en exceso (en rechazada algo más).
+
+Ambas tienen un sesgo positivo, ya que los bigotes superiores tienen mayor longitud. 
 
 
-# Observando el boxplot podemos decir que ambos tienen una distribución
-# simétrica. En cuanto a los outliners, no hay en exceso (en rechazada algo más).
-# Ambas tienen un sesgo positivo, ya que los bigotes superiores tienen mayor
-# longitud. 
-
-
-library(ggplot2)
-
+```{r}
 # Gráfico de densidad ajustado
 ggplot(data = melted_data, aes(x = Value, color = V16, fill = V16)) +
   geom_density(alpha = 0.6) +
@@ -452,13 +450,10 @@ ggplot(data = melted_data, aes(x = Value, color = V16, fill = V16)) +
   xlab("Valores") +   # Etiqueta para el eje x
   ggtitle("Densidad de Valores por Especie")  # Título del gráfico
 
-#El análisis de la distribución de V2 muestra que ambas categorías (rechazada y 
-#aprobada) presentan una asimetría positiva, con picos de densidad más altos en 
-#valores bajos y una cola extendida hacia la derecha. La curva de las solicitudes 
-#rechazadas tiene una densidad más pronunciada cerca de los valores bajos (alrededor
-#de 20), mientras que la curva de las solicitudes aprobadas es más dispersa y 
-#se extiende hacia valores más altos, sugiriendo que las aprobaciones están 
-#asociadas con un rango más amplio de valores.
+```
+
+
+El análisis de la distribución de V2 muestra que ambas categorías (rechazada y aprobada) presentan una asimetría positiva, con picos de densidad más altos en valores bajos y una cola extendida hacia la derecha. La curva de las solicitudes rechazadas tiene una densidad más pronunciada cerca de los valores bajos (alrededor de 20), mientras que la curva de las solicitudes aprobadas es más dispersa y se extiende hacia valores más altos, sugiriendo que las aprobaciones están asociadas con un rango más amplio de valores.
 
 #La superposición de las dos curvas, especialmente en el rango bajo de V2, 
 #indica que esta variable por sí sola no es un fuerte discriminante entre 
@@ -481,9 +476,6 @@ ggplot(melted_data, aes(x = V16, y = Value, color=V16, fill=V16)) +
   ylab("Valores de V2") +
   ggtitle("Distribución de V2 por Categoría de V16")
 ```
-
-
-
 
 ```{r}
 # MUTIVARIABLE V16 V9
@@ -521,12 +513,9 @@ ggplot(data = melted_data, aes(x = Value, color = V16, fill = V16)) +
 
 ```
 
-
-
 grafico v14-v16
 
 Es interesante apreciar que hay ciertas zonas en las que se ensancha el gráfico de aprobadas y adelgaza el gráfico de rechazadas y viceversa. Por la relación comentada con anterioridad. Puede ser que en los intervalos [0,100] y [300,500] aproximadamente, correspondan a casas pertenecientes a barrios más adinerados.
-
 
 # Limpieza de datos
 
@@ -543,12 +532,11 @@ colnames(credit)[colnames(credit) == "V11"] <- "Solvencia"
 colnames(credit)[colnames(credit) == "V13"] <- "composicionPoblacion"
 ```
 
-1. Tratamiento de datos nulos
+1.  Tratamiento de datos nulos
 
 Los valores nulos representan datos faltantes, que pueden surgir por diferentes motivos, como errores de captura o características incompletas en los registros.
 
-a. Ignorar registros incompletos
-Este método consiste en eliminar filas que contienen valores nulos. Es útil si los valores nulos son pocos o si la pérdida de registros no afecta significativamente al análisis. Sin embargo, es un método bastante malo, ya que elimina la fila entera, ocasionando una gran pérdida de datos:
+a.  Ignorar registros incompletos Este método consiste en eliminar filas que contienen valores nulos. Es útil si los valores nulos son pocos o si la pérdida de registros no afecta significativamente al análisis. Sin embargo, es un método bastante malo, ya que elimina la fila entera, ocasionando una gran pérdida de datos:
 
 ```{r}
 # Crea una copia sin filas con NA
@@ -556,8 +544,7 @@ credit_sin_na <- na.omit(credit)
 nrow(credit_sin_na)
 ```
 
-b. Rellenar con una constante
-Este método rellena los valores nulos en una columna específica con un valor constante, como "unknown". Es útil cuando queremos preservar el máximo de datos posible y el valor nulo tiene un significado, como "desconocido". Lo podríamos realizar en alguna columna, si hay muchos NA y queremos solcionarlo de una forma rápida:
+b.  Rellenar con una constante Este método rellena los valores nulos en una columna específica con un valor constante, como "unknown". Es útil cuando queremos preservar el máximo de datos posible y el valor nulo tiene un significado, como "desconocido". Lo podríamos realizar en alguna columna, si hay muchos NA y queremos solcionarlo de una forma rápida:
 
 ```{r}
 credit_constante <- credit
@@ -574,8 +561,7 @@ sum(credit_constante$Genero == "unknown")/nrow(credit_constante)*100
 
 Hay muy pocos "unknown", por tanto, podría ser una opción. Continuamos probando.
 
-c. Imputar con la media de la columna
-La imputación estadística reemplaza los valores nulos con la media de la columna, útil cuando la variable es numérica. Esto reduce la influencia de valores faltantes sin introducir una categoría adicional.
+c.  Imputar con la media de la columna La imputación estadística reemplaza los valores nulos con la media de la columna, útil cuando la variable es numérica. Esto reduce la influencia de valores faltantes sin introducir una categoría adicional.
 
 ```{r}
 credit_media <- credit
@@ -586,14 +572,12 @@ sum(is.na(credit_media$Edad))
 
 Hemos aprovechado para imprimir el número de NA, antes y después. Sin embargo, no podemos decidir si sustituimos por la media o por la mediana a la ligera. Esto depende de si nuestra distribución es simétrica, en ese caso usaremos la media, en otro caso, la mediana:
 
-
 ```{r}
 hist(credit$Edad, main = "Distribución de V2", xlab = "Edad", col = "lightblue",breaks = 20)
 boxplot(credit$Edad, main = "Boxplot de V2", col = "lightgreen")
 ```
 
 simetriaedad1.png
-
 
 simetriaedad2.png
 
@@ -612,7 +596,6 @@ Es interesante ver qué variables tienen NA, para tratar cada una de ellas. Vamo
 numero_na_por_columnas <- colSums(is.na(credit))
 numero_na_por_columnas
 ```
-
 
 Por tanto, solo debemos de tratar las variables: Genero, Edad, EstadoCivil, V5, v6, V7 y V14. Parece que para algunas variables categóricasque tienen tan pocos NA, no tiene mucho sentido imputar por "unknown". Es más práctico y útil imputar por la categoría dominante (en el caso de que haya una categoría mucho más poblada que otra). Exploramos V5:
 
@@ -633,9 +616,8 @@ v5-barplot
 prop.table(summary(credit$V5))
 ```
 
+Los NA representan el 0.8695% de los datos, que es prácticamente inapreciable. Concluimos que es interesante imputar los NA por la cateroría \`\`g", ya que ésta representa un 75.21% de los datos, y no será casi apreciable. Esto nos lo simplifica mucho. Realizamos la imputación:
 
- Los NA representan el 0.8695\% de los datos, que es prácticamente inapreciable. Concluimos que es interesante imputar los NA por la cateroría ``g", ya que ésta representa un 75.21\% de los datos, y no será casi apreciable. Esto nos lo simplifica mucho. Realizamos la imputación:
- 
 ```{r}
 sum(is.na(credit$V5))
 credit$V5[is.na(credit$V5)] <- "g"
@@ -643,7 +625,6 @@ sum(is.na(credit$V5))
 ```
 
 Procedemos a hacer lo mismo con el resto de variables para ver si podemos hacer lo mismo o hay que emplear otro método:
-
 
 ```{r}
 summary(credit$EstadoCivil)
@@ -666,19 +647,14 @@ barplot(frecuencias,
         +         border = "black")
 ```
 
-
-En cuanto a ``EstadoCivil" podemos realizar la imputación por ``a" ya que estamos en un caso similar al anterior. Si analizamos V7 también podemos imputar por ``v". Sin embargo, en V6 no podemos, solo nos tenemos que fijar en el barplot:
-
+En cuanto a `EstadoCivil" podemos realizar la imputación por`a" ya que estamos en un caso similar al anterior. Si analizamos V7 también podemos imputar por \`\`v". Sin embargo, en V6 no podemos, solo nos tenemos que fijar en el barplot:
 
 v6-barplot.png
 
-
 v7-parplot.png
 
+Empezamos imputando por \`\`Estado Civil" y V7:
 
-
- Empezamos imputando por ``Estado Civil" y V7:
- 
 ```{r}
 # Imputamos EstadoCivil
 sum(is.na(credit$EstadoCivil))
@@ -690,8 +666,7 @@ credit$V7[is.na(credit$V7)] <- "v"
 sum(is.na(credit$V7))
 ```
 
-Como V6 no tiene categorías tan predominantes, por tanto, necesitamos emplear otra técnica. Como tenemos 9 NA, que no son muchos, tampoco tenemos por qué complicarlo mucho. Algo interesante que podemos hacer es imputación aleatoria ponderada. Como su propio nombre indica consiste en generar categorías de forma aleatoria teniendo en cuenta su participación en la variable. 
-
+Como V6 no tiene categorías tan predominantes, por tanto, necesitamos emplear otra técnica. Como tenemos 9 NA, que no son muchos, tampoco tenemos por qué complicarlo mucho. Algo interesante que podemos hacer es imputación aleatoria ponderada. Como su propio nombre indica consiste en generar categorías de forma aleatoria teniendo en cuenta su participación en la variable.
 
 ```{r}
 set.seed(123) # Para reproducibilidad
@@ -702,22 +677,17 @@ credit$V6[is.na(credit$V6)] <- sample(categorias, size = sum(is.na(credit$V6)), 
 sum(is.na(credit$V6))
 ```
 
-
 # Pre-procesado de datos II: Eliminar predictores correlados o de poca varianza.
 
-1. Eliminar variables de poca varianza
- Las variables con poca varianza aportan poca información al modelo y pueden causar problemas como modelos inestables o errores en algoritmos sensibles a varianzas. En general, es recomendable eliminarlas, y en R se pueden identificar con la función nearZeroVar():
- 
- 
+1.  Eliminar variables de poca varianza Las variables con poca varianza aportan poca información al modelo y pueden causar problemas como modelos inestables o errores en algoritmos sensibles a varianzas. En general, es recomendable eliminarlas, y en R se pueden identificar con la función nearZeroVar():
+
 ```{r}
 nearZeroVar(credit)
 ```
 
 En este caso, no tenemos variables que tengan una varianza baja o cercana a cero.
 
-2. Eliminar variables correladas
-Cuando dos variables están muy correladas entre ellas básicamente representan la misma información. Es por ello que suele ser interesante eliminar una de las variables y simplificar el modelo al tener menos variables de entrada. Aunque no siempre es beneficioso, en la mayoría de los casos sí.
-
+2.  Eliminar variables correladas Cuando dos variables están muy correladas entre ellas básicamente representan la misma información. Es por ello que suele ser interesante eliminar una de las variables y simplificar el modelo al tener menos variables de entrada. Aunque no siempre es beneficioso, en la mayoría de los casos sí.
 
 La función findCorrelation() del paquete caret se utiliza para identificar variables altamente correlacionadas en un dataset y ayudarte a eliminarlas. Para ello, necesitamos una matriz de correlación. Una matriz de correlación es una tabla que muestra los coeficientes de correlación entre múltiples variables en un dataset.
 
@@ -741,120 +711,3 @@ eliminar_columnas
 ```
 
 En conclusión, no hay dos variables altamente realcionadas en nuestra base de datos credit.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
