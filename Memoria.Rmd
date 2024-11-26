@@ -12,10 +12,10 @@ output:
 ---
 
 ```{r, echo=FALSE, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE)
 # Lista de paquetes necesarios
-paquetes <- c("base", "caret", "datasets", "ggplot2", 
-              "graphics", "grDevices", "lattice", 
-              "methods", "stats", "utils")
+paquetes <- c("base", "caret", "datasets", "ggplot2", "graphics", "grDevices", "lattice", "methods", "stats", "utils")
 
 # Comprobar paquetes faltantes
 paquetes_faltantes <- paquetes[!(paquetes %in% installed.packages()[,"Package"])]
@@ -35,6 +35,13 @@ credit <- read.table("crx.data", header = FALSE, sep = ",", na.strings = "?")
 credit.trainIdx <- readRDS("credit.trainIdx.rds")
 credit.Datos.Train <- credit[credit.trainIdx,]
 credit.Datos.Test <- credit[-credit.trainIdx,]
+
+# Crear un indicador para cada conjunto
+credit.Datos.Train$Origen <- "train"
+credit.Datos.Test$Origen <- "test"
+
+# Combinar los conjuntos
+combined_credit <- rbind(credit.Datos.Train, credit.Datos.Test)
 ```
 
 
@@ -455,18 +462,12 @@ ggplot(data = melted_data, aes(x = Value, color = V16, fill = V16)) +
 
 El análisis de la distribución de V2 muestra que ambas categorías (rechazada y aprobada) presentan una asimetría positiva, con picos de densidad más altos en valores bajos y una cola extendida hacia la derecha. La curva de las solicitudes rechazadas tiene una densidad más pronunciada cerca de los valores bajos (alrededor de 20), mientras que la curva de las solicitudes aprobadas es más dispersa y se extiende hacia valores más altos, sugiriendo que las aprobaciones están asociadas con un rango más amplio de valores.
 
-#La superposición de las dos curvas, especialmente en el rango bajo de V2, 
-#indica que esta variable por sí sola no es un fuerte discriminante entre 
-#aprobaciones y rechazos. Sin embargo, a medida que los valores de V2 aumentan, 
-#las aprobaciones se vuelven más frecuentes.
+La superposición de las dos curvas, especialmente en el rango bajo de V2, indica que esta variable por sí sola no es un fuerte discriminante entre aprobaciones y rechazos. Sin embargo, a medida que los valores de V2 aumentan, las aprobaciones se vuelven más frecuentes.
 
-#En resumen, V2 parece influir en la decisión de crédito, pero debido a la 
-#considerable superposición, podría requerir análisis adicionales junto con 
-#otras variables para mejorar la capacidad predictiva.
+En resumen, V2 parece influir en la decisión de crédito, pero debido a la considerable superposición, podría requerir análisis adicionales junto con otras variables para mejorar la capacidad predictiva.
 
+```{r}
 # Boxplot chetados con puntos
-
-library(ggplot2)
 ggplot(melted_data, aes(x = V16, y = Value, color=V16, fill=V16)) +
   geom_boxplot(alpha=0.6) +
   geom_jitter(color="black") +
@@ -477,8 +478,11 @@ ggplot(melted_data, aes(x = V16, y = Value, color=V16, fill=V16)) +
   ggtitle("Distribución de V2 por Categoría de V16")
 ```
 
-```{r}
+
 # MUTIVARIABLE V16 V9
+
+```{r}
+
 
 melted_data <- melt(credit, id.vars = "V16", measure.vars = "V9", 
                     variable.name = "Variable", value.name = "Value")
@@ -491,14 +495,11 @@ ggplot(melted_data, aes(x = V16, y = Value)) +
   ylab("Valores de V2") +
   ggtitle("Distribución de V2 por Categoría de V16")
 
+```
 
-# Observando el boxplot podemos decir que ambos tienen una distribución
-# simétrica. En cuanto a los outliners, no hay en exceso (en rechazada algo más).
-# Ambas tienen un sesgo positivo, ya que los bigotes superiores tienen mayor
-# longitud. 
+Observando el boxplot podemos decir que ambos tienen una distribución simétrica. En cuanto a los outliners, no hay en exceso (en rechazada algo más). Ambas tienen un sesgo positivo, ya que los bigotes superiores tienen mayor longitud. 
 
-
-library(ggplot2)
+```{r}
 
 # Gráfico de densidad ajustado
 ggplot(data = melted_data, aes(x = Value, color = V16, fill = V16)) +
@@ -509,205 +510,890 @@ ggplot(data = melted_data, aes(x = Value, color = V16, fill = V16)) +
   xlab("Valores") +   # Etiqueta para el eje x
   ggtitle("Densidad de Valores por Especie")  # Título del gráfico
 
-
-
 ```
 
 grafico v14-v16
 
 Es interesante apreciar que hay ciertas zonas en las que se ensancha el gráfico de aprobadas y adelgaza el gráfico de rechazadas y viceversa. Por la relación comentada con anterioridad. Puede ser que en los intervalos [0,100] y [300,500] aproximadamente, correspondan a casas pertenecientes a barrios más adinerados.
 
-# Limpieza de datos
+## Pre-procesado de datos (I): Tratamiento de outliers y nulos:
 
-Lo primero que vamos a hacer es renombrar las columnas que creemos que sabemos su significado para mejorar su legibilidad:
+
+## Pre-procesado de datos (I): Tratamiento de outliers y nulos:
+
+Comenzamos renombrando las columnas en base a la información que tenemos:
 
 ```{r}
-colnames(credit)[colnames(credit) == "V1"] <- "Genero"
-colnames(credit)[colnames(credit) == "V2"] <- "Edad"
-colnames(credit)[colnames(credit) == "V3"] <- "Deuda"
-colnames(credit)[colnames(credit) == "V4"] <- "EstadoCivil"
-colnames(credit)[colnames(credit) == "V8"] <- "AnyosContratado"
-colnames(credit)[colnames(credit) == "V10"] <- "Empleado"
-colnames(credit)[colnames(credit) == "V11"] <- "Solvencia"
-colnames(credit)[colnames(credit) == "V13"] <- "composicionPoblacion"
+colnames(combined_credit)[colnames(combined_credit) == "V1"] <- "Genero"
+colnames(combined_credit)[colnames(combined_credit) == "V2"] <- "Edad"
+colnames(combined_credit)[colnames(combined_credit) == "V3"] <- "Deuda"
+colnames(combined_credit)[colnames(combined_credit) == "V4"] <- "EstadoCivil"
+colnames(combined_credit)[colnames(combined_credit) == "V8"] <- "AnyosContratado"
+colnames(combined_credit)[colnames(combined_credit) == "V10"] <- "Empleado"
+colnames(combined_credit)[colnames(combined_credit) == "V11"] <- "Solvencia"
+colnames(combined_credit)[colnames(combined_credit) == "V13"] <- "composicionPoblacion"
 ```
 
-1.  Tratamiento de datos nulos
+[**Tratamiento de valores fuera de rango:**]{.underline}
 
-Los valores nulos representan datos faltantes, que pueden surgir por diferentes motivos, como errores de captura o características incompletas en los registros.
-
-a.  Ignorar registros incompletos Este método consiste en eliminar filas que contienen valores nulos. Es útil si los valores nulos son pocos o si la pérdida de registros no afecta significativamente al análisis. Sin embargo, es un método bastante malo, ya que elimina la fila entera, ocasionando una gran pérdida de datos:
+Para ello, vamos a diseñar una función que detecte outliners. Como hemos aprendido a hacerlo es con la siguiente fórmula: si valor **∈** [Q1 - 1.5 \* RI, Q3 + 1.5 \* RI] se considera outliner. Siendo RI (Rango Intercuatil).
 
 ```{r}
-# Crea una copia sin filas con NA
-credit_sin_na <- na.omit(credit)
-nrow(credit_sin_na)
+credit.Datos.Train <- combined_credit[combined_credit$Origen == "train", ]
+credit.Datos.Test <- combined_credit[combined_credit$Origen == "test", ]
+
+detectar_outliers <- function(x) {
+  Q1 <- quantile(x, 0.25, na.rm = TRUE)
+  Q3 <- quantile(x, 0.75, na.rm = TRUE)
+  RI <- Q3 - Q1
+  limite_inferior <- Q1 - 1.5 * RI
+  limite_superior <- Q3 + 1.5 * RI
+  return(x < limite_inferior | x > limite_superior)
+}
+
+credit.Datos.continuas <- credit.Datos.Train[, sapply(credit.Datos.Train, is.numeric)]
+outliners <- lapply(credit.Datos.continuas, detectar_outliers)
+
+# Contar los outliers por variable
+sumas_outliners <- sapply(outliners, sum)
+sumas_outliners
 ```
 
-b.  Rellenar con una constante Este método rellena los valores nulos en una columna específica con un valor constante, como "unknown". Es útil cuando queremos preservar el máximo de datos posible y el valor nulo tiene un significado, como "desconocido". Lo podríamos realizar en alguna columna, si hay muchos NA y queremos solcionarlo de una forma rápida:
+Sin embargo, estos datos no son tan representativos. Necesitamos saber qué porcentaje son atípicos del total de datos.
 
 ```{r}
-credit_constante <- credit
-levels(credit_constante$Genero) <-c(levels(credit_constante$Genero),"unknown")
-credit_constante$Genero[is.na(credit_constante$Genero)] <- "unknown"
-nrow(credit_constante)
+numero_filas <- nrow(na.omit(credit.Datos.Train))
+
+proporcion <- function(x) {
+  return(x/numero_filas*100)
+}
+
+proporciones <- lapply(sumas_outliners, proporcion)
+proporciones
 ```
 
-De esta forma comprobamos que no hemos eliminado ninguna fila, simplemente hemos añadido "unknown", siendo el dominio {a,b,unknown}. Sin embargo, esto no lo deberíamos hacer, a no ser que el número de NA sea muy bajo.
+Según hemos estado investigando cuando el porcentaje de outliners se encuentra entre 5% y 15% hay que tratarlos ya que pueden ser problemáticos. Siendo estos: AnyosContratado, Solvencia, V14 y V15:
 
 ```{r}
-sum(credit_constante$Genero == "unknown")/nrow(credit_constante)*100
+boxplot(credit.Datos.Train$AnyosContratado,boxwex=0.15,ylab="AnyosContratado")
+rug(jitter(credit.Datos.Train$AnyosContratado),side=2)
+abline(h=mean(credit.Datos.Train$AnyosContratado,na.rm=T),lty=2)
+
+boxplot(credit.Datos.Train$Solvencia,boxwex=0.15,ylab="Solvencia")
+rug(jitter(credit.Datos.Train$Solvencia),side=2)
+abline(h=mean(credit.Datos.Train$Solvencia,na.rm=T),lty=2)
+
+boxplot(credit.Datos.Train$V14,boxwex=0.15,ylab="V14")
+rug(jitter(credit.Datos.Train$V14),side=2)
+abline(h=mean(credit.Datos.Train$V14,na.rm=T),lty=2)
+
+boxplot(credit.Datos.Train$V15,boxwex=0.15,ylab="V15")
+rug(jitter(credit.Datos.Train$V15),side=2)
+abline(h=mean(credit.Datos.Train$V15,na.rm=T),lty=2)
 ```
 
-Hay muy pocos "unknown", por tanto, podría ser una opción. Continuamos probando.
-
-c.  Imputar con la media de la columna La imputación estadística reemplaza los valores nulos con la media de la columna, útil cuando la variable es numérica. Esto reduce la influencia de valores faltantes sin introducir una categoría adicional.
+Decidimos que queremos equiparar a los valores fuera de rango con los valores extremos. Esto se llama winsorización:\
 
 ```{r}
-credit_media <- credit
-sum(is.na(credit_media$Edad))
-credit_media$Edad[is.na(credit_media$Edad)] <- mean(credit$Edad, na.rm = TRUE)
-sum(is.na(credit_media$Edad))
+# Función para calcular límites de winsorización (IR)
+calcular_limites <- function(x) {
+  Q1 <- quantile(x, 0.25, na.rm = TRUE)
+  Q3 <- quantile(x, 0.75, na.rm = TRUE)
+  RI <- Q3 - Q1
+  limite_inferior <- Q1 - 1.5 * RI
+  limite_superior <- Q3 + 1.5 * RI
+  return(c(limite_inferior, limite_superior))
+}
+
+# Función para aplicar winsorización con límites definidos
+winsorizar_con_limites <- function(x, limites) {
+  limite_inferior <- limites[1]
+  limite_superior <- limites[2]
+  x[x < limite_inferior] <- limite_inferior
+  x[x > limite_superior] <- limite_superior
+  return(x)
+}
+
+columnas_a_winsorizar <- c("AnyosContratado", "Solvencia", "V14", "V15")
+
+credit.Datos.Train.wins <- credit.Datos.Train
+credit.Datos.Test.wins <- credit.Datos.Test
+
+# Calcular límites en el conjunto de entrenamiento
+limites_winsorizacion <- lapply(credit.Datos.Train.wins[, columnas_a_winsorizar], calcular_limites)
+
+# Winsorizar el conjunto de entrenamiento
+for (col in columnas_a_winsorizar) {
+  credit.Datos.Train.wins[[col]] <- winsorizar_con_limites(credit.Datos.Train.wins[[col]], limites_winsorizacion[[col]])
+}
+
+# Aplicar los mismos límites al conjunto de prueba
+for (col in columnas_a_winsorizar) {
+  credit.Datos.Test.wins[[col]] <- winsorizar_con_limites(credit.Datos.Test.wins[[col]], limites_winsorizacion[[col]])
+}
+
+# En el caso de que NO queramos usar la winsorización solo debemos de comentar líneas
+credit.Datos.Train <- credit.Datos.Train.wins
+credit.Datos.Test <- credit.Datos.Test.wins
 ```
 
-Hemos aprovechado para imprimir el número de NA, antes y después. Sin embargo, no podemos decidir si sustituimos por la media o por la mediana a la ligera. Esto depende de si nuestra distribución es simétrica, en ese caso usaremos la media, en otro caso, la mediana:
+Comprobamos que ya no hay valores fuera de rango, excepto en "Deuda" que el porcentaje es muy bajo.
 
 ```{r}
-hist(credit$Edad, main = "Distribución de V2", xlab = "Edad", col = "lightblue",breaks = 20)
-boxplot(credit$Edad, main = "Boxplot de V2", col = "lightgreen")
+credit.Datos.continuas <- credit.Datos.Train[, sapply(credit.Datos.Train, is.numeric)]
+outliners <- lapply(credit.Datos.continuas, detectar_outliers)
+
+# Contar los outliers por variable
+sumas_outliners <- sapply(outliners, sum)
+sumas_outliners
 ```
 
-simetriaedad1.png
-
-simetriaedad2.png
-
-Concluimos que simétrica no es. Por tanto, es más interesante usar la mediana:
+Sin embargo, debemos de analizar si en "Deuda" hay errores evidentes que puedan perjudicar el rendimiento del modelo:
 
 ```{r}
-credit_mediana <- credit
-sum(is.na(credit_mediana$Edad))
-credit_mediana$Edad[is.na(credit_mediana$Edad)] <- median(credit$Edad, na.rm = TRUE)
-um(is.na(credit_mediana$Edad))
+summary(credit.Datos.Train$Deuda)
 ```
 
-Es interesante ver qué variables tienen NA, para tratar cada una de ellas. Vamos a ver cuantos NA tiene cada una:
+No parece que haya valores incorrectos. En caso de que hubiera valores negativos, sería sospechoso, pero no parece que sea así.
+
+Sin embargo en Edad nos podemos dar cuenta que hay valores erroneos, ya que los menores de edad en Estados Unidos no pueden solicitar créditos. Por tanto, podemos sustituir los valores menos a 18, por 18:
 
 ```{r}
-numero_na_por_columnas <- colSums(is.na(credit))
-numero_na_por_columnas
+
+ajustar_edad <- function(x) {
+  x[x < 18] <- 18
+  return(x)
+}
+
+credit.Datos.Train$Edad <- ajustar_edad(credit.Datos.Train$Edad)
+credit.Datos.Test$Edad <- ajustar_edad(credit.Datos.Test$Edad)
+
+summary(credit.Datos.Train$Edad)
+summary(credit.Datos.Test$Edad)
 ```
 
-Por tanto, solo debemos de tratar las variables: Genero, Edad, EstadoCivil, V5, v6, V7 y V14. Parece que para algunas variables categóricasque tienen tan pocos NA, no tiene mucho sentido imputar por "unknown". Es más práctico y útil imputar por la categoría dominante (en el caso de que haya una categoría mucho más poblada que otra). Exploramos V5:
+Como vemos hemos conseguido transformarlo de forma correcta.
+
+[**Tratamiento de valores nulos:**]{.underline}
+
+Primero vamos a ver cuántos valores nulos tiene cada variable. Esto nos indica que variables hay que transformar:
 
 ```{r}
-summary(credit$V5)
-frecuencias <- table(credit$V5)
+combined_credit <- rbind(credit.Datos.Train, credit.Datos.Test)
+num_na <- sapply(combined_credit, function(x) sum(is.na(x)))
+print(num_na)
+```
+
+Primero de todo, vamos a analizar las variables continuas para analizar su distribución y elegir el tipo de sustitución idónea para cada una de ellas. Pero antes debemos de asegurarnos de no violar el principio de independencia de conjuntos, es necesario volver a separar los datos, para tener actualizadas las bases de datos de entrenamiento y validación:
+
+**Breve inciso:** Realmente, no hace falta separar la base de datos, ya que en la base de datos de validación no hay nulos. Sin embargo, hemos considerado que se trata de una buena práctica, para siempre caer en ese detalle.
+
+```{r}
+credit.Datos.Train <- combined_credit[combined_credit$Origen == "train", ]
+credit.Datos.Test <- combined_credit[combined_credit$Origen == "test", ]
+
+# Verificar dimensiones
+dim(credit.Datos.Train)  # Debe coincidir con la tabla original de entrenamiento
+dim(credit.Datos.Test)   # Debe coincidir con la tabla original de validación
+
+```
+
+Como vemos las dimensiones son las correctas. De hecho tenemos una columna más, ya que con ella distinguimos si se trata de un conjunto de validación y testing.
+
+Ahora si podemos analizar las variables de credit:\
+
+```{r}
+# histograma enriquecido para Edad
+hist(credit.Datos.Train$Edad, xlab="",
+main="Máximo valor de Edad", ylim=c(0,0.07),probability=T)
+lines(density(credit.Datos.Train$Edad,na.rm=T))
+rug(jitter(credit.Datos.Train$Edad))
+```
+
+La mediana es robusta frente a sesgos y outliers, lo que la hace ideal para distribuciones asimétricas como esta. Mantendrá el equilibrio en el rango más común (20–40 años). Tampoco es necesario complicar la imputación ya que hay pocos valores nulos. En este caso 12.
+
+```{r}
+library(caret)
+
+credit.Datos.Test.imp <- credit.Datos.Test
+credit.Datos.Train.imp <- credit.Datos.Train
+
+# Calcular la mediana en el conjunto de entrenamiento
+mediana_edad <- median(credit.Datos.Train.imp$Edad, na.rm = TRUE)
+
+# Imputar en el conjunto de entrenamiento
+credit.Datos.Train.imp$Edad[is.na(credit.Datos.Train.imp$Edad)] <- mediana_edad
+
+# Imputar en el conjunto de validación usando la mediana del entrenamiento
+credit.Datos.Test.imp$Edad[is.na(credit.Datos.Test.imp$Edad)] <- mediana_edad
+
+test_imp_num_na <- sapply(credit.Datos.Test.imp, function(x) sum(is.na(x)))
+train_imp_num_na <- sapply(credit.Datos.Train.imp, function(x) sum(is.na(x)))
+print(train_imp_num_na+test_imp_num_na)
+```
+
+Ahora vamos a analizar la variable V14 (continua).
+
+```{r}
+# histograma enriquecido para V14
+hist(credit.Datos.Train$V14, xlab="",
+main="Máximo valor de V14", ylim=c(0,0.004),probability=T)
+lines(density(credit.Datos.Train$V14,na.rm=T))
+rug(jitter(credit.Datos.Train$V14))
+
+summary(credit.Datos.Train$V14)
+```
+
+La variable V14, según la gráfica y el resumen estadístico, presenta una distribución muy asimétrica, con la mayoría de los valores concentrados en el rango bajo (entre 0 y 280), pero con algunos valores muy altos (hasta 2000, outliners). Dado que hay 13 valores faltantes (NA), que no son muchos, pero sí más que las anteriores, debemos de elegir una buena ténica de imputación:
+
+```{r}
+# Calcular la mediana solo en el conjunto de entrenamiento
+mediana_v14 <- median(credit.Datos.Train.imp$V14, na.rm = TRUE)
+
+# Imputar NA en el conjunto de entrenamiento
+credit.Datos.Train.imp$V14[is.na(credit.Datos.Train.imp$V14)] <- mediana_v14
+
+# Imputar NA en el conjunto de validación
+credit.Datos.Test.imp$V14[is.na(credit.Datos.Test.imp$V14)] <- mediana_v14
+
+test_imp_num_na <- sapply(credit.Datos.Test.imp, function(x) sum(is.na(x)))
+train_imp_num_na <- sapply(credit.Datos.Train.imp, function(x) sum(is.na(x)))
+print(train_imp_num_na+test_imp_num_na)
+```
+
+Ahora solo nos quedan variables categóricas.
+
+Procedemos con la primera variable cetegórica, Género:\
+
+```{r}
+frecuencias <- table(credit.Datos.Train$Genero)
+
 barplot(frecuencias, 
-        +         main = "Distribución de credit$V5", 
-        +         xlab = "Categorías de V5", 
-        +         ylab = "Frecuencia", 
-        +         col = "lightblue", 
-        +         border = "black")
+        main = "Distribución de Genero", 
+        xlab = "Genero", 
+        ylab = "Frecuencia", 
+        col = "skyblue")
+
 ```
 
-v5-barplot
+Debido al bajo número de NA y sabiendo que la categoría altamente dominante de b (hombres, según hemos especulado). Pensamos que lo más apropiado es asumir que son hombres, imputación por la moda. Imputar por "unknown" pensamos que no beneficia en absoluto el algoritmo.
 
 ```{r}
-prop.table(summary(credit$V5))
+moda_genero <- "b"
+
+# Imputar en el conjunto de entrenamiento
+credit.Datos.Train.imp$Genero[is.na(credit.Datos.Train.imp$Genero)] <- moda_genero
+
+# Imputar en el conjunto de validación
+credit.Datos.Test.imp$Genero[is.na(credit.Datos.Test.imp$Genero)] <- moda_genero
+
+test_imp_num_na <- sapply(credit.Datos.Test.imp, function(x) sum(is.na(x)))
+train_imp_num_na <- sapply(credit.Datos.Train.imp, function(x) sum(is.na(x)))
+print(train_imp_num_na+test_imp_num_na)
 ```
 
-Los NA representan el 0.8695% de los datos, que es prácticamente inapreciable. Concluimos que es interesante imputar los NA por la cateroría \`\`g", ya que ésta representa un 75.21% de los datos, y no será casi apreciable. Esto nos lo simplifica mucho. Realizamos la imputación:
+La siguiente es la variable "EstadoCivil". Variable categórica con 3 valores categóricos, siendo su dominio {l,u,y}. Vamos a ver la distribución que sigue:
 
 ```{r}
-sum(is.na(credit$V5))
-credit$V5[is.na(credit$V5)] <- "g"
-sum(is.na(credit$V5))
-```
+frecuencias <- table(credit.Datos.Train$EstadoCivil)
 
-Procedemos a hacer lo mismo con el resto de variables para ver si podemos hacer lo mismo o hay que emplear otro método:
-
-```{r}
-summary(credit$EstadoCivil)
-summary(credit$V6)
-summary(credit$V7)
-frecuencias <- table(credit$V7)
 barplot(frecuencias, 
-        +         main = "Distribución de credit$V5", 
-        +         xlab = "Categorías de V5", 
-        +         ylab = "Frecuencia", 
-        +         col = "lightblue", 
-        +         border = "black")
-
-frecuencias <- table(credit$V6)
-barplot(frecuencias, 
-        +         main = "Distribución de credit$V6", 
-        +         xlab = "Categorías de V6", 
-        +         ylab = "Frecuencia", 
-        +         col = "lightblue", 
-        +         border = "black")
+        main = "Distribución de EstadoCivil", 
+        xlab = "EstadoCivil", 
+        ylab = "Frecuencia", 
+        col = "skyblue")
 ```
 
-En cuanto a `EstadoCivil" podemos realizar la imputación por`a" ya que estamos en un caso similar al anterior. Si analizamos V7 también podemos imputar por \`\`v". Sin embargo, en V6 no podemos, solo nos tenemos que fijar en el barplot:
-
-v6-barplot.png
-
-v7-parplot.png
-
-Empezamos imputando por \`\`Estado Civil" y V7:
+Como en el caso anterior, y con más razón aún, vamos a imputar por la moda. Es evidente que hay una categoría muy dominante, y el bajo número de NA hace que no vaya a variar prácticamente la distribución:
 
 ```{r}
-# Imputamos EstadoCivil
-sum(is.na(credit$EstadoCivil))
-credit$EstadoCivil[is.na(credit$EstadoCivil)] <- "u"
-sum(is.na(credit$EstadoCivil))
-# Imputamos V7
-sum(is.na(credit$V7))
-credit$V7[is.na(credit$V7)] <- "v"
-sum(is.na(credit$V7))
+moda_genero <- "u"
+
+# Imputar en el conjunto de entrenamiento
+credit.Datos.Train.imp$EstadoCivil[is.na(credit.Datos.Train.imp$EstadoCivil)] <- moda_genero
+
+# Imputar en el conjunto de validación
+credit.Datos.Test.imp$EstadoCivil[is.na(credit.Datos.Test.imp$EstadoCivil)] <- moda_genero
+
+test_imp_num_na <- sapply(credit.Datos.Test.imp, function(x) sum(is.na(x)))
+train_imp_num_na <- sapply(credit.Datos.Train.imp, function(x) sum(is.na(x)))
+print(train_imp_num_na+test_imp_num_na)
+```
+
+Analizamos la variable categórica V5 para saber qué forma tienen los datos:
+
+```{r}
+frecuencias <- table(credit.Datos.Train$V5)
+
+barplot(frecuencias, 
+        main = "Distribución de V5", 
+        xlab = "V5", 
+        ylab = "Frecuencia", 
+        col = "skyblue")
+```
+
+Podemos imputar por la moda, ya que la categoría "g" es claramente dominante, y no cambiará mucho la distribución:
+
+```{r}
+moda_genero <- "g"
+
+# Imputar en el conjunto de entrenamiento
+credit.Datos.Train.imp$V5[is.na(credit.Datos.Train.imp$V5)] <- moda_genero
+
+# Imputar en el conjunto de validación
+credit.Datos.Test.imp$V5[is.na(credit.Datos.Test.imp$V5)] <- moda_genero
+
+test_imp_num_na <- sapply(credit.Datos.Test.imp, function(x) sum(is.na(x)))
+train_imp_num_na <- sapply(credit.Datos.Train.imp, function(x) sum(is.na(x)))
+print(train_imp_num_na+test_imp_num_na)
+```
+
+Procedemos a evaluar V6 (categórica):
+
+```{r}
+frecuencias <- table(credit.Datos.Train$V6)
+
+barplot(frecuencias, 
+        main = "Distribución de V6", 
+        xlab = "V6", 
+        ylab = "Frecuencia", 
+        col = "skyblue")
 ```
 
 Como V6 no tiene categorías tan predominantes, por tanto, necesitamos emplear otra técnica. Como tenemos 9 NA, que no son muchos, tampoco tenemos por qué complicarlo mucho. Algo interesante que podemos hacer es imputación aleatoria ponderada. Como su propio nombre indica consiste en generar categorías de forma aleatoria teniendo en cuenta su participación en la variable.
 
 ```{r}
-set.seed(123) # Para reproducibilidad
-categorias <- names(table(credit$V6))
-probabilidades <- prop.table(table(credit$V6))
+set.seed(123)
+categorias <- names(table(credit.Datos.Train.imp$V6))
+probabilidades <- prop.table(table(credit.Datos.Train.imp$V6))
+
 # Imputar valores NA
-credit$V6[is.na(credit$V6)] <- sample(categorias, size = sum(is.na(credit$V6)), replace = TRUE, prob = probabilidades)
-sum(is.na(credit$V6))
+credit.Datos.Train.imp$V6[is.na(credit.Datos.Train.imp$V6)] <- sample(categorias, size = sum(is.na(credit.Datos.Train.imp$V6)), replace = TRUE, prob = probabilidades)
+
+sum(is.na(credit.Datos.Train.imp$V6))
+
+test_imp_num_na <- sapply(credit.Datos.Test.imp, function(x) sum(is.na(x)))
+train_imp_num_na <- sapply(credit.Datos.Train.imp, function(x) sum(is.na(x)))
+print(train_imp_num_na+test_imp_num_na)
 ```
 
-# Pre-procesado de datos II: Eliminar predictores correlados o de poca varianza.
-
-1.  Eliminar variables de poca varianza Las variables con poca varianza aportan poca información al modelo y pueden causar problemas como modelos inestables o errores en algoritmos sensibles a varianzas. En general, es recomendable eliminarlas, y en R se pueden identificar con la función nearZeroVar():
+Por último, analizamos la variable categórica V7:
 
 ```{r}
-nearZeroVar(credit)
+frecuencias <- table(credit.Datos.Train$V7)
+
+barplot(frecuencias, 
+        main = "Distribución de V7", 
+        xlab = "V7", 
+        ylab = "Frecuencia", 
+        col = "skyblue")
 ```
 
-En este caso, no tenemos variables que tengan una varianza baja o cercana a cero.
-
-2.  Eliminar variables correladas Cuando dos variables están muy correladas entre ellas básicamente representan la misma información. Es por ello que suele ser interesante eliminar una de las variables y simplificar el modelo al tener menos variables de entrada. Aunque no siempre es beneficioso, en la mayoría de los casos sí.
-
-La función findCorrelation() del paquete caret se utiliza para identificar variables altamente correlacionadas en un dataset y ayudarte a eliminarlas. Para ello, necesitamos una matriz de correlación. Una matriz de correlación es una tabla que muestra los coeficientes de correlación entre múltiples variables en un dataset.
+Es evidente que una sustitución por la moda es muy interesante en esta variable también:
 
 ```{r}
-credit_numerico <- credit[sapply(credit, is.numeric)]
-matriz_cor <- cor(credit_numerico)
-print(matriz_cor)
+moda_genero <- "v"
+
+# Imputar en el conjunto de entrenamiento
+credit.Datos.Train.imp$V7[is.na(credit.Datos.Train.imp$V7)] <- moda_genero
+
+# Imputar en el conjunto de validación
+credit.Datos.Test.imp$V7[is.na(credit.Datos.Test.imp$V7)] <- moda_genero
+
+test_imp_num_na <- sapply(credit.Datos.Test.imp, function(x) sum(is.na(x)))
+train_imp_num_na <- sapply(credit.Datos.Train.imp, function(x) sum(is.na(x)))
+print(train_imp_num_na+test_imp_num_na)
 ```
 
-Concluimos que no hay dos variables con un índica alto de correlación. Siendo el máximo de esto del 0.3771428, no es un valor muy alto que tenga que preocuparnos.
-
-Sin embargo, vamos a comprobarlo con el uso de findCorrelation():
+A continuación, vamos a comprobar que la distribución de las variables imputadas, siguen siendo casi iguales (no hayan cambiado mucho):
 
 ```{r}
-# Seleccionamos las variables numéricas del dataset credit
-datos.input <- credit
-# Identificamos los nombres de las columnas altamente correlacionadas (umbral: 0.85)
+# Configurar la ventana gráfica para dos gráficos lado a lado
+par(mfrow = c(1, 2))  # 1 fila, 2 columnas
+
+#____________________Genero_________________________
+frecuencias <- table(credit.Datos.Train$Genero)
+barplot(frecuencias, 
+        main = "Distribución de Genero", 
+        xlab = "Genero", 
+        ylab = "Frecuencia", 
+        col = "skyblue")
+
+frecuencias <- table(credit.Datos.Train.imp$Genero)
+barplot(frecuencias, 
+        main = "Distribución de Genero", 
+        xlab = "Genero", 
+        ylab = "Frecuencia", 
+        col = "lightgreen")
+
+#____________________Edad_________________________
+hist(credit.Datos.Train$Edad, 
+     main = "Histograma de Edad", 
+     xlab = "Edad", 
+     col = "skyblue")
+
+hist(credit.Datos.Train.imp$Edad, 
+     main = "Histograma de Edad", 
+     xlab = "Edad", 
+     col = "lightgreen")
+
+#________________________EstadoCivil______________________
+frecuencias <- table(credit.Datos.Train$EstadoCivil)
+barplot(frecuencias, 
+        main = "Distribución de EstadoCivil", 
+        xlab = "EstadoCivil", 
+        ylab = "Frecuencia", 
+        col = "skyblue")
+
+frecuencias <- table(credit.Datos.Train.imp$EstadoCivil)
+barplot(frecuencias, 
+        main = "Distribución de EstadoCivil", 
+        xlab = "EstadoCivil", 
+        ylab = "Frecuencia", 
+        col = "lightgreen")
+
+#____________________V5_______________
+frecuencias <- table(credit.Datos.Train$V5)
+barplot(frecuencias, 
+        main = "Distribución de V5", 
+        xlab = "V5", 
+        ylab = "Frecuencia", 
+        col = "skyblue")
+
+frecuencias <- table(credit.Datos.Train.imp$V5)
+barplot(frecuencias, 
+        main = "Distribución de V5", 
+        xlab = "V5", 
+        ylab = "Frecuencia", 
+        col = "lightgreen")
+
+#____________________V6_______________
+frecuencias <- table(credit.Datos.Train$V6)
+barplot(frecuencias, 
+        main = "Distribución de V6", 
+        xlab = "V6", 
+        ylab = "Frecuencia", 
+        col = "skyblue")
+
+frecuencias <- table(credit.Datos.Train.imp$V6)
+barplot(frecuencias, 
+        main = "Distribución de V6", 
+        xlab = "V6", 
+        ylab = "Frecuencia", 
+        col = "lightgreen")
+
+#____________________V7_______________
+frecuencias <- table(credit.Datos.Train$V7)
+barplot(frecuencias, 
+        main = "Distribución de V7", 
+        xlab = "V7", 
+        ylab = "Frecuencia", 
+        col = "skyblue")
+
+frecuencias <- table(credit.Datos.Train.imp$V7)
+barplot(frecuencias, 
+        main = "Distribución de V7", 
+        xlab = "V7", 
+        ylab = "Frecuencia", 
+        col = "lightgreen")
+
+#____________________V14_______________
+hist(credit.Datos.Train$V14, 
+     main = "Histograma de V14", 
+     xlab = "V14", 
+     col = "skyblue")
+
+hist(credit.Datos.Train.imp$V14, 
+     main = "Histograma de V14", 
+     xlab = "V14", 
+     col = "lightgreen")
+```
+
+Como es evidente no ha cambiado casi nada (inapreciable). Entre otras cosas, debido al bajo número de NA.
+
+En cuanto a la sustitución mediante estudio de correlaciones, podemos ver si hay alguna de la siguiente manera (lo hacemos con los datos sin imputar para justificar que no era necesario usarlo):
+
+```{r}
+# Solo las columnas numéricas
+credit.Datos.numericas <- credit.Datos.Train[, sapply(credit.Datos.Train, is.numeric)]
+
+matriz_correlacion <- cor(credit.Datos.numericas, use = "complete.obs")
+
+print(matriz_correlacion)
+```
+
+Es evidente que no hay ninguna fuerte correlación entre variables, por tanto, hemos excluido esta opción de imputación. Al no haber correlación tampoco es interesante la sustitución de variables numéricas mediante clustering (knn).
+
+```{r}
+gen_plots <- function() {
+
+  credit.Datos.continuas <- credit.Datos.Train.imp[, sapply(credit.Datos.Train.imp, is.numeric)]
+  
+  for (name in colnames(credit.Datos.continuas)) {
+    hist(credit.Datos.continuas[[name]], 
+         main = paste("Histograma de", name),
+         xlab = name,
+         col = "lightgreen")
+  }
+}
+
+# Ejecutar la función
+gen_plots()
+
+```
+
+En el caso en el que queramos quitar toda la imputación, comentar este código:
+
+```{r}
+credit.Datos.Test <- credit.Datos.Test.imp
+credit.Datos.Train <- credit.Datos.Train.imp
+```
+
+## Pre-procesado de datos (II): Eliminar predictores correlados o de poca Varianza
+
+#### 1. Eliminar variables con poca Varianza
+
+Debemos de comprobar si la base de datos tiene columnas con poca varianza. Esto lo podemos comprobar con nearZero():
+
+**Aclaración:** No tenemos en cuenta la última columna con valores {train, test} ya que no cuentan para el análisis.
+
+```{r}
+nearZeroVar(credit.Datos.Train[, 1:16])
+nearZeroVar(credit.Datos.Test[, 1:16])
+```
+
+Como vemos no hay ninguna columna que tenga varianza cercana a cero, lo que nos indica que los datos están ya bastante "limpios".
+
+#### 2. Eliminar variables correladas:
+
+Ya hemos justificado antes que no hay variables correladas, observando la matriz de correlación.
+
+```{r}
+#Dummys
+credit.Data.To.Dummy <- rbind(credit.Datos.Train, credit.Datos.Test)
+credit.Var.Salida <- c("V16")
+credit.Var.Salida.Usada <- c("V16", "Origen")
+credit.Var.Entrada.Usadas <- setdiff(names(credit.Data.To.Dummy),credit.Var.Salida.Usada)
+credit.Var.Entrada.Dummys <- credit.Var.Entrada.Usadas
+summary(credit.Data.To.Dummy)
+# También qué factores serán Ranked  (tienen un orden implícito o una jerarquía definida, 
+# pero no se consideran completamente ordinales en el sentido clásico)
+credit.Ranked.Factors <- c("Genero", "EstadoCivil", "Empleado","composicionPoblacion", "V9", "V12")
+# Se separan los factores ordenados (no hay que hacer Dummy)
+credit.All.Factors<-names(credit.Data.To.Dummy[,credit.Var.Entrada.Usadas])[sapply(
+  credit.Data.To.Dummy[,credit.Var.Entrada.Usadas], FUN=is.factor)]
+credit.Ordered.Factors<-names(credit.Data.To.Dummy[,credit.Var.Entrada.Usadas])[sapply(
+  credit.Data.To.Dummy[,credit.Var.Entrada.Usadas], FUN=is.ordered)]
+# No hay ordenados 
+credit.Non.Ordered.Factors<-setdiff(credit.All.Factors,credit.Ordered.Factors)
+credit.No.Ranked<-setdiff(credit.Non.Ordered.Factors,credit.Ranked.Factors)
+
+# Se calculan las dummy de los ranked y no ranked
+credit.Cols.Ranked <- NULL
+if (length(credit.Ranked.Factors) > 0) {
+  credit.Dummy.Ranked <- dummyVars(
+    paste("~", paste(credit.Ranked.Factors, sep = "", collapse = " + "), collapse = ""),
+    data = credit.Data.To.Dummy, fullRank = T)
+  credit.Cols.Ranked <- data.frame(predict(credit.Dummy.Ranked,
+                                           newdata = credit.Data.To.Dummy))
+}
+credit.Cols.No.Ranked <- NULL
+if (length(credit.No.Ranked) > 0) {
+  credit.Dummy.No.Ranked <- dummyVars(
+    paste("~", paste(credit.No.Ranked, sep = "", collapse = " + "), collapse = ""),
+    data = credit.Data.To.Dummy)
+  credit.Cols.No.Ranked <- data.frame(predict(credit.Dummy.No.Ranked,
+                                              newdata = credit.Data.To.Dummy))
+}
+
+
+credit.Cols.Salida <- data.frame(credit.Data.To.Dummy[, credit.Var.Salida.Usada])
+names(credit.Cols.Salida) <- credit.Var.Salida.Usada
+
+# Se eliminan de los datos originales todas las columnas a reemplazar
+credit.Data.With.Dummy <- credit.Data.To.Dummy[, setdiff(names(credit.Data.To.Dummy),
+                                                         credit.Var.Salida)]
+credit.Data.With.Dummy <- credit.Data.With.Dummy[, setdiff(names(credit.Data.With.Dummy),
+                                                           credit.No.Ranked)]
+credit.Data.With.Dummy <- credit.Data.With.Dummy[, setdiff(names(credit.Data.With.Dummy),
+                                                           credit.Ranked.Factors)]
+credit.Data.With.Dummy <- credit.Data.With.Dummy[, setdiff(names(credit.Data.With.Dummy),
+                                                           credit.Ordered.Factors)]
+
+# Se añaden todas las columnas nuevas
+if (!is.null(credit.Cols.Ranked))
+  credit.Data.With.Dummy <- cbind(credit.Data.With.Dummy, credit.Cols.Ranked)
+if (!is.null(credit.Cols.No.Ranked))
+  credit.Data.With.Dummy <- cbind(credit.Data.With.Dummy, credit.Cols.No.Ranked)
+credit.Data.With.Dummy <- cbind(credit.Data.With.Dummy, credit.Cols.Salida)
+```
+
+En caso de querer eliminar el paso de Dummy, podemos simplemente comentar el siguiente código:
+
+```{r}
+credit.Datos.Train <- credit.Data.With.Dummy[credit.Data.With.Dummy$Origen == "train", ]
+credit.Datos.Test <- credit.Data.With.Dummy[credit.Data.With.Dummy$Origen == "test", ]
+```
+
+## Pre-procesado de datos (III): Transformando y construyendo variables (Feature Engineering).
+
+#### 1. Sobre transformaciones de las variables de salida
+
+No hay casos en los que a escala pueda dar errores de representación de los valores por la precisión de la representación. Y por temas de legibilidad ya hemos cambiado los valores de salida. Siendo el signo más y menos, aprobada y rechazada respectivamente.
+
+#### 2. Transformación de Variables
+
+##### 2.1. Escalado:
+
+NORMALIZACIÓN CENTER SCALE
+
+Mostramos los datos antes de hacer la normalización:
+
+```{r}
+credit.Datos.Todo <- rbind(credit.Datos.Train, credit.Datos.Test)
+credit.Continuas <- credit.Datos.Todo[, sapply(credit.Datos.Todo, is.numeric)]
+ggplot() + 
+  geom_density(aes(x = credit.Continuas$Edad, fill = "Edad"), alpha = 0.5) +
+  geom_density(aes(x = credit.Continuas$Deuda, fill = "Deuda"), alpha = 0.5) +
+  geom_density(aes(x = credit.Continuas$AnyosContratado, fill = "Años Contratado"), alpha = 0.5) +
+  geom_density(aes(x = credit.Continuas$Solvencia, fill = "Solvencia"), alpha = 0.5) +
+  geom_density(aes(x = credit.Continuas$V14, fill = "V14"), alpha = 0.5) +
+  geom_density(aes(x = credit.Continuas$V15, fill = "V15"), alpha = 0.5) +
+  labs(
+    title = "Distribución de Variables Continuas (Density Plot)",
+    x = "Valor",
+    y = "Densidad"
+  ) +
+  scale_fill_manual(
+    values = c("lightgreen", "lightblue", "lightcoral", "lightyellow", "lightpink", "lightgray"),
+    name = "Variables",
+    labels = c("Edad", "Deuda", "Años Contratado", "Solvencia", "V14", "V15")
+  ) +
+  theme_minimal() +
+  xlim(-1, 100)
+theme(legend.title = element_blank())
+```
+
+Hay que destacar que hemos limitado la x a 100, para poder visualizar el gráfico (de otra forma sería ilegible). Los datos llegarían hasta el 1000. Ahora vamos a normalizar y ver el gráfico de nuevo:
+
+Anotar que las categóricas se quitan solas
+
+```{r}
+credit.Datos.Todo <- rbind(credit.Datos.Train, credit.Datos.Test)
+
+credit.Var.Salida.Usada <- c("V16")
+credit.Var.Entrada.Usadas <- setdiff(names(credit.Datos.Todo),credit.Var.Salida.Usada)
+credit.Var.Entrada.Escaladas <- credit.Var.Entrada.Usadas
+
+credit.preProc.CS.Mod<-preProcess(credit.Datos.Train[credit.Var.Entrada.Escaladas],method=c("center","scale"))
+credit.Datos.Train.Transf.CS<-predict(credit.preProc.CS.Mod,credit.Datos.Train)
+credit.Datos.Test.Transf.CS<-predict(credit.preProc.CS.Mod,credit.Datos.Test)
+
+VarToPlot<-credit.Var.Entrada.Escaladas
+
+d1<-densityplot(formula(paste("~",paste(VarToPlot,sep="",collapse =" + "),collapse="")),data=credit.Datos.Train,main="Variables sin Normalizar",plot.points=F)
+
+d2<-densityplot(formula(paste("~",paste(VarToPlot,sep="",collapse =" + "),collapse="")),data=credit.Datos.Train.Transf.CS, main="Variables Normalizadas",plot.points=F)
+
+# Gráficos en blanco y negro (mejor para imprimir)
+trellis.par.set(theme = standard.theme("pdf",color=FALSE))
+print(d1,position=c(0,0,0.5,1),more=T)
+print(d2,position=c(0.5,0,1,1))
+# Volvemos a gráficos normales
+trellis.par.set(theme = standard.theme("pdf"))
+
+
+credit.Datos.Train.Transf.CS <- credit.Datos.Train.Transf.CS  # Este es el dataset normalizado
+
+# Identificar las variables numéricas (continuas)
+credit.Vars.Continuas <- sapply(credit.Datos.Train.Transf.CS, is.numeric)
+credit.normalizadasCS <- credit.Datos.Train.Transf.CS[, credit.Vars.Continuas]
+
+##############
+# Crear el gráfico directamente
+ggplot() + 
+  geom_density(aes(x = credit.normalizadasCS$Edad, fill = "Edad"), alpha = 0.5) +
+  geom_density(aes(x = credit.normalizadasCS$Deuda, fill = "Deuda"), alpha = 0.5) +
+  geom_density(aes(x = credit.normalizadasCS$AnyosContratado, fill = "Años Contratado"), alpha = 0.5) +
+  geom_density(aes(x = credit.normalizadasCS$Solvencia, fill = "Solvencia"), alpha = 0.5) +
+  geom_density(aes(x = credit.normalizadasCS$V14, fill = "V14"), alpha = 0.5) +
+  geom_density(aes(x = credit.normalizadasCS$V15, fill = "V15"), alpha = 0.5) +
+  labs(
+    title = "Distribución de Variables Continuas (Density Plot)",
+    x = "Valor",
+    y = "Densidad"
+  ) +
+  scale_fill_manual(
+    values = c("lightgreen", "lightblue", "lightcoral", "lightyellow", "lightpink", "lightgray"),
+    name = "Variables",
+    labels = c("Edad", "Deuda", "Años Contratado", "Solvencia", "V14", "V15")
+  ) +
+  theme_minimal() +
+  #xlim(-1, 2.5)
+theme(legend.title = element_blank())
+```
+
+En caso de no querer incluir la normalización center scale en nuestros datos, comentar esto:
+
+```{r}
+credit.Datos.Train <- credit.normalizadasCS[credit.normalizadasCS$Origen == "train", ]
+credit.Datos.Test <- credit.normalizadasCS[credit.normalizadasCS$Origen == "test", ]
+```
+
+RANGE:\
+
+```{r}
+#Normalizacion Range [0,1]
+credit.preProc.Range.Mod<-preProcess(credit.Datos.Train[credit.Var.Entrada.Escaladas],
+                                  method="range")
+credit.Datos.Train.Transf.Range<-predict(credit.preProc.Range.Mod,credit.Datos.Train)
+credit.Datos.Test.Transf.Range<-predict(credit.preProc.Range.Mod,credit.Datos.Test)
+
+credit.Vars.Continuas <- sapply(credit.Datos.Train.Transf.Range, is.numeric)
+credit.normalizadasRange <- credit.Datos.Train.Transf.Range[, credit.Vars.Continuas]
+
+##############
+# Crear el gráfico directamente
+ggplot() + 
+  geom_density(aes(x = credit.normalizadasRange$Edad, fill = "Edad"), alpha = 0.5) +
+  geom_density(aes(x = credit.normalizadasRange$Deuda, fill = "Deuda"), alpha = 0.5) +
+  geom_density(aes(x = credit.normalizadasRange$AnyosContratado, fill = "Años Contratado"), alpha = 0.5) +
+  geom_density(aes(x = credit.normalizadasRange$Solvencia, fill = "Solvencia"), alpha = 0.5) +
+  geom_density(aes(x = credit.normalizadasRange$V14, fill = "V14"), alpha = 0.5) +
+  geom_density(aes(x = credit.normalizadasRange$V15, fill = "V15"), alpha = 0.5) +
+  labs(
+    title = "Distribución de Variables Continuas (Density Plot)",
+    x = "Valor",
+    y = "Densidad"
+  ) +
+  scale_fill_manual(
+    values = c("lightgreen", "lightblue", "lightcoral", "lightyellow", "lightpink", "lightgray"),
+    name = "Variables",
+    labels = c("Edad", "Deuda", "Años Contratado", "Solvencia", "V14", "V15")
+  ) +
+  theme_minimal() +
+  xlim(-1, 1)
+theme(legend.title = element_blank())
+```
+
+En caso de NO querer incluir esta normalización de tipo rango, comentar este código:
+
+```{r}
+#credit.Datos.Train <- credit.normalizadasRange[credit.normalizadasRange$Origen == "train", ]
+#credit.Datos.Test <- credit.normalizadasRange[credit.normalizadasRange$Origen == "test", ]
+```
+
+PCA:
+
+```{r}
+
+#Eliminar previamente valores atipicos, muy sebsible
+#Sobre los datos de entrenamiento IMPORTANTE
+credit.Var.Entrada.Continuas <- which(sapply(credit.Datos.Train[, -ncol(credit.Datos.Train)], is.numeric))
+
+credit.PreProc.Pca.Mod<-preProcess(credit.Datos.Train[credit.Var.Entrada.Continuas],method=c("pca"),thresh = 0.9)
+credit.Datos.Train.Transf.PCA <- predict(credit.PreProc.Pca.Mod, credit.Datos.Train)
+credit.Datos.Test.Transf.PCA <- predict(credit.PreProc.Pca.Mod, credit.Datos.Test)
+
+print(credit.PreProc.Pca.Mod)
+summary(credit.Datos.Train.Transf.PCA)
+summary(credit.Datos.Test.Transf.PCA)
+```
+
+En caso de NO querer incluir PCA, comentar el siguiente código:
+
+```{r}
+credit.Datos.Train <- credit.Datos.Train.Transf.PCA
+credit.Datos.Test <- credit.Datos.Test.Transf.PCA
+```
+
+ICA:\
+
+```{r}
+# IMPORTANTE LEER: EN MI CASO HE TENIDO QUE INSTALAR:
+#           sudo apt install liblapack-dev libblas-dev gfortran
+
+# Sobre credit (se calcula sobre train)
+library(fastICA)
 library(caret)
-eliminar_columnas <- labels(matriz_cor)[[1]][findCorrelation(matriz_cor,cutoff = 0.85)]
-eliminar_columnas
+
+
+credit.PreProc.Ica.Mod <- preProcess(credit.Datos.Train[credit.Var.Entrada.Continuas], method = c("ica"), n.comp = 2)
+credit.Datos.Train.Transf.ICA <- predict(credit.PreProc.Ica.Mod, credit.Datos.Train)
+credit.Datos.Test.Transf.ICA <- predict(credit.PreProc.Ica.Mod, credit.Datos.Test)
+print(credit.PreProc.Ica.Mod)
+summary(credit.Datos.Train.Transf.ICA)
+summary(credit.Datos.Test.Transf.ICA)
 ```
 
-En conclusión, no hay dos variables altamente realcionadas en nuestra base de datos credit.
+En caso de NO querer incluir ICA, comentar el siguiente código:
+
+```{r}
+#credit.Datos.Train <- credit.Datos.Train.Transf.ICA
+#credit.Datos.Test <- credit.Datos.Test.Transf.ICA
+```
+
+PRIMER ENTRENAMIENTO DE GBM:\
+[lista de requisitos probados:]{.underline}
+
+1.  Imputación estándar
+
+2.  dummies
+
+3.  Normalización CENTER SCALE (NO ME DEJA)
+
+4.  PCA (NO ME DEJA AL NORMALIZAR)\
+
+```{r}
+# Antes de nada:
+
+# Eliminar la última columna del conjunto de entrenamiento
+credit.Datos.Train <- credit.Datos.Train[, -ncol(credit.Datos.Train)]
+
+# Eliminar la última columna del conjunto de prueba
+credit.Datos.Test <- credit.Datos.Test[, -ncol(credit.Datos.Test)]
+
+
+library(caret)
+
+# Definir las variables de entrada y salida
+credit.Var.Salida.Usada <- "V16"  # Cambiar según tu variable de salida
+credit.Vars.Entrada.Usadas <- setdiff(names(credit.Datos.Train), credit.Var.Salida.Usada)
+
+# Configurar el modelo GBM
+set.seed(1234)
+credit.modelo.gbm <- train(
+  credit.Datos.Train[credit.Vars.Entrada.Usadas], # Variables de entrada
+  credit.Datos.Train[[credit.Var.Salida.Usada]], # Variable de salida
+  method = "gbm",                                # Método GBM
+  trControl = trainControl(method = "cv", number = 5), # Validación cruzada
+  verbose = FALSE                                # Evitar logs innecesarios
+)
+
+# Ver los detalles del modelo entrenado
+print(credit.modelo.gbm)
+
+# Predecir en el conjunto de prueba
+credit.Pred.Test <- predict(credit.modelo.gbm, credit.Datos.Test)
+
+# Evaluar el rendimiento en el conjunto de prueba
+confusionMatrix(credit.Pred.Test, credit.Datos.Test[[credit.Var.Salida.Usada]])
+
+```
+
+Vemos procentaje:\
+
+```{r}
+# Realizar predicciones en el conjunto de prueba
+predicciones_test <- predict(credit.modelo.gbm, credit.Datos.Test)
+
+# Generar la matriz de confusión
+matriz_confusion <- confusionMatrix(predicciones_test, credit.Datos.Test[[credit.Var.Salida.Usada]])
+
+# Extraer el porcentaje de acierto
+porcentaje_acierto <- matriz_confusion$overall["Accuracy"] * 100
+
+# Mostrar el porcentaje de acierto
+print(paste("Porcentaje de acierto:", round(porcentaje_acierto, 2), "%"))
+
+```
