@@ -1397,3 +1397,106 @@ porcentaje_acierto <- matriz_confusion$overall["Accuracy"] * 100
 print(paste("Porcentaje de acierto:", round(porcentaje_acierto, 2), "%"))
 
 ```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ENTRENAMIENTO RF
+
+
+```{r}
+install.packages("caret")
+install.packages("randomForest")
+library(caret)
+library(randomForest)
+
+
+
+# Configuración de Random Forest con validación cruzada
+set.seed(1234) # Para reproducibilidad
+control_rf <- trainControl(
+  method = "cv",      # Validación cruzada
+  number = 5,         # Número de folds
+  verboseIter = FALSE # Sin mostrar iteraciones
+)
+
+# Entrenamiento del modelo Random Forest
+credit.modelo.rf <- train(
+  x = credit.Datos.Train[credit.Vars.Entrada.Usadas], # Variables de entrada
+  y = credit.Datos.Train[[credit.Var.Salida.Usada]], # Variable de salida
+  method = "rf",                                     # Método Random Forest
+  trControl = control_rf,                            # Control de validación
+  tuneGrid = expand.grid(mtry = c(2, 3, 4)),         # Exploración de hiperparámetros
+  ntree = 500,                                       # Número de árboles en el bosque
+  importance = TRUE                                  # Calcular importancia de variables
+)
+
+# Resumen del modelo
+print(credit.modelo.rf)
+
+
+
+# Predicciones en el conjunto de prueba
+credit.Pred.Test.rf <- predict(credit.modelo.rf, credit.Datos.Test)
+
+# Matriz de confusión para evaluar el rendimiento
+confusion_rf <- confusionMatrix(credit.Pred.Test.rf, credit.Datos.Test[[credit.Var.Salida.Usada]])
+
+# Ver la matriz de confusión y la precisión
+print(confusion_rf)
+
+# Porcentaje de acierto
+porcentaje_acierto_rf <- confusion_rf$overall["Accuracy"] * 100
+print(paste("Porcentaje de acierto con RF:", round(porcentaje_acierto_rf, 2), "%"))
+
+
+## NO TERMINADO FALTAN MAS COSAS
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```
+
+
+
+
+
+
+
+
