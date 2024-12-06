@@ -49,8 +49,6 @@ credit.Datos.Test$Origen <- "test"
 combined_credit <- rbind(credit.Datos.Train, credit.Datos.Test)
 ```
 
-
-
 # Introducción
 
 El documento ha cargado automáticamente la base de datos, ahora vamos a ir haciendo un preprocesado de los datos, primero el siguiente comando muestra la cantidad de valores NA por columna:
@@ -96,7 +94,6 @@ porcentaje_menores_18
 
 Comprobamos que aproximadamente el 5% de los clientes son menores de edad, al no ser una cifra muy significativa, podemos asumir que son valores fuera de rango, y que efectivamente podríamos estar ante la variable de edad. En siguientes apartados veremos qué hacer con estos valores.
 
-
 Decidimos que es interesante analizar V2 ya que su media y mediana son parecidas, lo cual sugiere que la distribución puede ser simétrica (cercana a normal).
 
 Generamos un histograma base con la función hist() de R para la variable V2 con probability = TRUE para mostrar la densidad en vez de las frecuencias absolutas. Además añadimos una línea de densidad para observar la forma de la distribución de V2, usando la función lines() y especificando el color "blue" para la curva.
@@ -136,7 +133,6 @@ Como vemos, V2 no sigue exactamente una distribución normal, ya que la media y 
 
 Para confirmar formalmente la falta de normalidad, realizaremos un gráfico Q-Q (Quantile-Quantile), que nos permite comparar la distribución de V2 con la distribución teórica normal.
 
-
 ```{r}
 
 # Creamos el gráfico Q-Q para V2 utilizando ggplot2.
@@ -162,7 +158,6 @@ p1
 
 Como vemos hay una desviación de la diagonal. Por tanto, podemos concluir que no se trata de una distribución normal.
 
-
 ## V3
 
 Nuestra especulación en cuanto a esta columna es que se trata de la cantidad de deuda que tienen los clientes. Sin embargo, no tiene sentido que el que más debe, el total sea 28\$:
@@ -186,7 +181,6 @@ porcent_casados
 
 Si buscamos en internet en torno al 70% de la población adulta en Estados Unidos estaba casada. Como podemos ver se aproxima mucho a nuestro resultado. Esa pequeña diferencia puede deberse a que muchos matrimonios al casarse, compran una casa, y piden un préstamo para ello.
 
-
 ESTO ES NECESARIO:
 
 ```{r}
@@ -199,7 +193,6 @@ str(credit$V4)
 
 
 ```
-
 
 ## V6
 
@@ -215,8 +208,7 @@ Verificamos la estructura de V6 para confirmar que es una variable categórica (
 str(credit$V6)
 ```
 
-
-Calculamos el porcentaje de cada categoría en V6, para ello primero, obtenemos la frecuencia de cada categoría con table(credit$V6) y luego, usamos prop.table() para calcular la proporción relativa de cada categoría y multiplicamos por 100 para expresarlo en porcentaje.
+Calculamos el porcentaje de cada categoría en V6, para ello primero, obtenemos la frecuencia de cada categoría con table(credit\$V6) y luego, usamos prop.table() para calcular la proporción relativa de cada categoría y multiplicamos por 100 para expresarlo en porcentaje.
 
 ```{r}
 porcent <- prop.table(table(credit$V6)) * 100
@@ -236,8 +228,7 @@ porcent
 
 Ahora que entendemos la distribución de frecuencias y porcentajes de cada categoría, generamos un gráfico de sectores para visualizar estos porcentajes de manera gráfica y comparativa.
 
-Creamos el gráfico de sectores (o "quesos") usando la función pie(), pasándole el vector de porcentajes.
-Establecemos un título con el argumento main y aplicamos diferentes colores a cada categoría usando rainbow().
+Creamos el gráfico de sectores (o "quesos") usando la función pie(), pasándole el vector de porcentajes. Establecemos un título con el argumento main y aplicamos diferentes colores a cada categoría usando rainbow().
 
 ```{r}
 pie(porcent, main = "Diagrama de Quesos para V6", col = rainbow(length(porcent)))
@@ -248,7 +239,6 @@ Mostramos nuevamente el vector de porcentajes para recordar los valores antes de
 ```{r}
 porcent
 ```
-
 
 Calculamos la suma del resumen de V6 para confirmar el número total de observaciones, incluyendo posibles NA.
 
@@ -264,7 +254,6 @@ porcentaje_na
 ```
 
 Concluimos que, siendo aproximadamente un 1.3% de valores faltantes (NA), la eliminación de estas observaciones es razonable, ya que este porcentaje es bajo y es poco probable que afecte significativamente el análisis.
-
 
 ## V8
 
@@ -359,8 +348,6 @@ hist(credit$V15, probability = TRUE,main = "Histograma de V15 con Curva de Densi
 lines(density(credit$V15, na.rm = TRUE), col = "blue")
 ```
 
-
-
 Observamos que muchos valores altos de V15 hacen difícil ver los valores menores. Para solucionar esto, usamos ggplot2 para crear un histograma que enfoque la escala en valores menores, estableciendo los intervalos hasta 1000 (ajustable según el rango de interés).
 
 Creamos un histograma de V15 con ggplot2, aplicando intervalos de 10 en el rango de 0 a 1000.
@@ -400,10 +387,6 @@ p1 = ggplot(data=credit,aes(sample=V15)) +
 p1
 ```
 
-
-
-
-
 ```{r}
 # Multivariable
 summary(credit$V15)
@@ -432,13 +415,11 @@ Verificamos la estructura de V16 para confirmar que es de tipo factor y ver las 
 str(credit$V16)
 ```
 
-Calculamos el porcentaje de cada categoría en V16.
-Primero, usamos table(credit$V16) para obtener las frecuencias de cada categoría, luego, aplicamos prop.table() para obtener la proporción relativa, multiplicando por 100 para obtener el porcentaje.
+Calculamos el porcentaje de cada categoría en V16. Primero, usamos table(credit\$V16) para obtener las frecuencias de cada categoría, luego, aplicamos prop.table() para obtener la proporción relativa, multiplicando por 100 para obtener el porcentaje.
 
 ```{r}
 porcent <- prop.table(table(credit$V16)) * 100
 ```
-
 
 Creamos una tabla combinada que incluye tanto el número total (frecuencia) como el porcentaje de cada categoría. Usamos cbind() para unir el total (frecuencia) y el porcentaje en una tabla.
 
@@ -460,8 +441,7 @@ Creamos el gráfico de sectores con pie(), donde usamos el vector de porcentajes
 pie(porcent, main = "Diagrama de Quesos para V16", col = rainbow(length(porcent)))
 ```
 
-Con este gráfico de sectores, podemos ver visualmente la distribución de cada categoría en V16.
-Dado que las categorías tienen frecuencias similares, podemos observar que la distribución es aproximadamente uniforme y no se identifican categorías con frecuencias extremas (outliers).
+Con este gráfico de sectores, podemos ver visualmente la distribución de cada categoría en V16. Dado que las categorías tienen frecuencias similares, podemos observar que la distribución es aproximadamente uniforme y no se identifican categorías con frecuencias extremas (outliers).
 
 ```{r}
 
@@ -478,8 +458,7 @@ ggplot(melted_data, aes(x = V16, y = Value)) +
 
 Observando el boxplot podemos decir que ambos tienen una distribución simétrica. En cuanto a los outliners, no hay en exceso (en rechazada algo más).
 
-Ambas tienen un sesgo positivo, ya que los bigotes superiores tienen mayor longitud. 
-
+Ambas tienen un sesgo positivo, ya que los bigotes superiores tienen mayor longitud.
 
 ```{r}
 # Gráfico de densidad ajustado
@@ -513,7 +492,7 @@ ggplot(melted_data, aes(x = V16, y = Value, color=V16, fill=V16)) +
 
 # Analisis multivariable
 
-##  V16 V9
+## V16 V9
 
 ```{r}
 melted_data <- melt(credit, id.vars = "V16", measure.vars = "V9", variable.name = "Variable", value.name = "Value")
@@ -529,7 +508,7 @@ ggplot(melted_data, aes(x = V16, y = Value)) +
 
 ```
 
-Observando el boxplot podemos decir que ambos tienen una distribución simétrica. En cuanto a los outliners, no hay en exceso (en rechazada algo más). Ambas tienen un sesgo positivo, ya que los bigotes superiores tienen mayor longitud. 
+Observando el boxplot podemos decir que ambos tienen una distribución simétrica. En cuanto a los outliners, no hay en exceso (en rechazada algo más). Ambas tienen un sesgo positivo, ya que los bigotes superiores tienen mayor longitud.
 
 ```{r}
 
@@ -545,7 +524,6 @@ ggplot(data = melted_data, aes(x = Value, color = V16, fill = V16)) +
 ```
 
 Es interesante apreciar que hay ciertas zonas en las que se ensancha el gráfico de aprobadas y adelgaza el gráfico de rechazadas y viceversa. Por la relación comentada con anterioridad. Puede ser que en los intervalos [0,100] y [300,500] aproximadamente, correspondan a casas pertenecientes a barrios más adinerados.
-
 
 # Pre-procesado de datos (I): Tratamiento de outliers y nulos:
 
@@ -1204,8 +1182,8 @@ Hay que destacar que hemos limitado la x a 100, para poder visualizar el gráfic
 
 Anotar que las categóricas se quitan solas
 
-
 ## COMENTO ESTE CODIGO PORQUE DA FALLOS Y QUIERO EL VER HTML COMPILADO
+
 ```{r}
 # credit.Datos.Todo <- rbind(credit.Datos.Train, credit.Datos.Test)
 # 
@@ -1264,13 +1242,15 @@ Anotar que las categóricas se quitan solas
 En caso de no querer incluir la normalización center scale en nuestros datos, comentar esto:
 
 ## COMENTO ESTE CODIGO PORQUE DA FALLOS Y QUIERO EL VER HTML COMPILADO
+
 ```{r}
 # credit.Datos.Train <- credit.normalizadasCS[credit.normalizadasCS$Origen == "train", ]
 # credit.Datos.Test <- credit.normalizadasCS[credit.normalizadasCS$Origen == "test", ]
 ```
 
 RANGE:\
-## COMENTO ESTE CODIGO PORQUE DA FALLOS Y QUIERO EL VER HTML COMPILADO
+\## COMENTO ESTE CODIGO PORQUE DA FALLOS Y QUIERO EL VER HTML COMPILADO
+
 ```{r}
 # #Normalizacion Range [0,1]
 # credit.preProc.Range.Mod<-preProcess(credit.Datos.Train[credit.Var.Entrada.Escaladas],
@@ -1337,7 +1317,8 @@ credit.Datos.Test <- credit.Datos.Test.Transf.PCA
 ```
 
 ICA:\
-## COMENTO ESTE CODIGO PORQUE DA FALLOS Y QUIERO EL VER HTML COMPILADO
+\## COMENTO ESTE CODIGO PORQUE DA FALLOS Y QUIERO EL VER HTML COMPILADO
+
 ```{r}
 # # IMPORTANTE LEER: EN MI CASO HE TENIDO QUE INSTALAR:
 # #           sudo apt install liblapack-dev libblas-dev gfortran
@@ -1362,10 +1343,9 @@ En caso de NO querer incluir ICA, comentar el siguiente código:
 #credit.Datos.Test <- credit.Datos.Test.Transf.ICA
 ```
 
---------------------------------------------------------------------------------
+------------------------------------------------------------------------
+
 # Entrenamiento de modelos
-
-
 
 [lista de requisitos probados:]{.underline}
 
@@ -1377,9 +1357,10 @@ En caso de NO querer incluir ICA, comentar el siguiente código:
 
 4.  PCA (NO ME DEJA AL NORMALIZAR)\
 
-
 ## GBM
+
 ## COMENTO ESTE CODIGO PORQUE DA FALLOS Y QUIERO EL VER HTML COMPILADO
+
 ```{r}
 # # Antes de nada:
 # 
@@ -1433,30 +1414,6 @@ Vemos procentaje:\
 
 ```
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 ## Random Forest
 
 Vamos a entreenar este modelo, pero antes vamos a ver los hiperparametros que tiene para ello usamos el siguiente comando:
@@ -1464,8 +1421,8 @@ Vamos a entreenar este modelo, pero antes vamos a ver los hiperparametros que ti
 ```{r}
 modelLookup(("rf"))
 ```
-Como en random forest no permite datos NA hay que imputarlas o eliminarlas:
 
+Como en random forest no permite datos NA hay que imputarlas o eliminarlas:
 
 ```{r}
 
@@ -1549,11 +1506,6 @@ confusionMatrix(
 
 ```
 
-
-
-
-
-
 ## Redes neuronales
 
 Pasamos ahroa a entrenar el modelo de redes neuronales, primero vemis los posibkes hiperparametros disponbles que tiene:
@@ -1561,7 +1513,6 @@ Pasamos ahroa a entrenar el modelo de redes neuronales, primero vemis los posibk
 ```{r}
 modelLookup(("nnet"))
 ```
-
 
 ```{r}
 # 1. Cargar librerías necesarias
@@ -1620,37 +1571,3 @@ matrizConfusionNNET <- confusionMatrix(
 print(paste("Porcentaje de aciertos: ", round(matrizConfusionNNET$overall["Accuracy"] * 100, 2), "%", sep = ""))
 
 ```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
