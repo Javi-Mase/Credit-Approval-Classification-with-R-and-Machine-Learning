@@ -71,7 +71,7 @@ Despues de esto empezamos especulando el significado de cada uno de las variable
 
 # Análisis de Variables
 
-## **V1**
+## V1
 
 Se trata de una variable categórica, con valores en el dominio `{a, b}`. Tiene un significado que podemos intuir de forma relativamente fácil. De hecho, podemos pensar que "a" se trata de mujeres y "b" de hombres. Esto se debe a que la base es de los años 80, y en esa época era más común que los hombres soliciten créditos, y en el caso de las mujeres, seguramente las que lo solicitaban eran las que estaban solteras. Se trata de una época con pensamientos cerrados, y esto es un simple estudio estadístico.
 
@@ -83,7 +83,7 @@ summary(credit$V1)
 
 Como podemos comprobar nuestra suposición puede ser cierta.
 
-## **V2**
+## V2
 
 Esta columna puede ser la edad del cliente. Es continuo ya que los días los puede estar teniendo en cuenta de alguna forma. Sin embargo, en Estados Unidos los menores no pueden solicitar un crédito y hay algunos valores menores de 18. Vamos a calcular cuantos:
 
@@ -163,7 +163,7 @@ p1
 Como vemos hay una desviación de la diagonal. Por tanto, podemos concluir que no se trata de una distribución normal.
 
 
-## **V3**
+## V3
 
 Nuestra especulación en cuanto a esta columna es que se trata de la cantidad de deuda que tienen los clientes. Sin embargo, no tiene sentido que el que más debe, el total sea 28\$:
 
@@ -173,7 +173,7 @@ summary(credit$V3)
 
 Por ello, pensamos que pueda estar dividida por $10^{3}$ o similar. De igual manera no nos importa la proporción que lleve.
 
-## **V4**
+## V4
 
 En esta columna podríamos estar ante el estado civil de cada uno de los clientes. Siendo cada uno de los valores {l=desconocido, u=casados, y=solteros, t=otros}. Si calculamos el porcentaje de clientes casados:
 
@@ -201,7 +201,7 @@ str(credit$V4)
 ```
 
 
-## **V6**
+## V6
 
 Analizamos la variable categórica V6 para obtener una visión general de su distribución y composición. Mostramos un resumen estadístico de V6, que nos indica la frecuencia de cada categoría en esta variable.
 
@@ -266,7 +266,7 @@ porcentaje_na
 Concluimos que, siendo aproximadamente un 1.3% de valores faltantes (NA), la eliminación de estas observaciones es razonable, ya que este porcentaje es bajo y es poco probable que afecte significativamente el análisis.
 
 
-## **V8**
+## V8
 
 Esta variable creemos que puede ser los años de empleo. Si nos fijamos en los valores de las columnas de V8 (años contratado) y las comparamos por filas con las de V2 (edad) nos podemos dar cuenta que nunca va a superar la edad. De hecho en muchos casos tiene coherencia la edad con el número de años contratado. Esto puede ser un claro indicativo que estamos ante una buena especulación. Aún así vamos a verlo en R:
 
@@ -282,7 +282,7 @@ summary(credit$V2)
 
 ¿Aporta algo este resumen? Por supuesto, de hecho tenemos la razón de que nuestra variable de años contratados presente datos tan bajos. Estamos ante un conjunto de clientes jóvenes, y como es lógico no tienen muchos años como empleados.
 
-## **V10**
+## V10
 
 Esta variable hemos podido intuir junto a alguna investigaciones que representa si un cliente está actualmente empleado. Esto es muy interesante de cara al análisis por temas obvios de solvencia. Suponemos que {f=empleado, t=no empleado}. Pero, ¿realmente es consistente la cifra de empleados? Sí, lo vemos con:
 
@@ -293,7 +293,7 @@ porcentajes_empleados
 
 Según hemos podido encontrar en los años ochenta en Estados Unidos había un 60% de población activa. Esto es de gran utilidad para hacer una correlación junto a V16 (aprobada/rechazada).
 
-## **V11**
+## V11
 
 Esta variable es posible que sea \`\`credit score", que es es una expresión numérica que representa la solvencia de un individuo. Según hemos podido comprobar también ha sido retocada (los valores), ya que los valores no siguen la notación habitual. Pero sí sabemos que cuanto mayor es el valor, mayor es la solvencia. En la Figura\~\ref{fig:credit_score} podemos encontrar un gráfico interesante que ilustra este concepto:
 
@@ -317,7 +317,7 @@ grafico v11
 
 Lo deberíamos de tener en cuenta a la hora de hacer el análisis multivariable.
 
-## **V13**
+## V13
 
 Pasamos a analizar la última variable interesante para nuestro análisis. Esta variable representa composición de la población, clasificando en: cuidadano, residente permenente o inmigrante. Según consta en los datos, la distribución es 86%, 2.6% y 6.2%. ¿Se aproximará?
 
@@ -342,7 +342,7 @@ library(ggplot2)
     scale_fill_manual(values = c("skyblue", "orange"))
 ```
 
-## **V15**
+## V15
 
 Vamos a analizar la variable V15, que parece tener una distribución con muchos valores cercanos a 0 pero también valores atípicos elevados, lo que podría afectar la media.
 
@@ -416,7 +416,7 @@ library(reshape2)
 
 ```
 
-## **V16** 
+## V16
 
 Comenzamos con el análisis de la variable categórica V16, que contiene las clases objetivo o categorías para nuestro análisis.
 
