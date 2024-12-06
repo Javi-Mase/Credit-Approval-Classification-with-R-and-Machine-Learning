@@ -5,10 +5,12 @@ output:
   html_document:
     df_print: paged
     highlight: kate
-    number_sections: yes
+    number_sections: true
     theme: paper
-    toc: yes
-    toc_float: yes
+    toc: true
+    toc_float: true
+  pdf_document:
+    toc: true
 ---
 
 ```{r, echo=FALSE, include=FALSE}
@@ -1202,102 +1204,105 @@ Hay que destacar que hemos limitado la x a 100, para poder visualizar el gráfic
 
 Anotar que las categóricas se quitan solas
 
+
+## COMENTO ESTE CODIGO PORQUE DA FALLOS Y QUIERO EL VER HTML COMPILADO
 ```{r}
-credit.Datos.Todo <- rbind(credit.Datos.Train, credit.Datos.Test)
+# credit.Datos.Todo <- rbind(credit.Datos.Train, credit.Datos.Test)
+# 
+# credit.Var.Salida.Usada <- c("V16")
+# credit.Var.Entrada.Usadas <- setdiff(names(credit.Datos.Todo),credit.Var.Salida.Usada)
+# credit.Var.Entrada.Escaladas <- credit.Var.Entrada.Usadas
+# 
+# credit.preProc.CS.Mod<-preProcess(credit.Datos.Train[credit.Var.Entrada.Escaladas],method=c("center","scale"))
+# credit.Datos.Train.Transf.CS<-predict(credit.preProc.CS.Mod,credit.Datos.Train)
+# credit.Datos.Test.Transf.CS<-predict(credit.preProc.CS.Mod,credit.Datos.Test)
+# 
+# VarToPlot<-credit.Var.Entrada.Escaladas
+# 
+# d1<-densityplot(formula(paste("~",paste(VarToPlot,sep="",collapse =" + "),collapse="")),data=credit.Datos.Train,main="Variables sin Normalizar",plot.points=F)
+# 
+# d2<-densityplot(formula(paste("~",paste(VarToPlot,sep="",collapse =" + "),collapse="")),data=credit.Datos.Train.Transf.CS, main="Variables Normalizadas",plot.points=F)
+# 
+# # Gráficos en blanco y negro (mejor para imprimir)
+# trellis.par.set(theme = standard.theme("pdf",color=FALSE))
+# print(d1,position=c(0,0,0.5,1),more=T)
+# print(d2,position=c(0.5,0,1,1))
+# # Volvemos a gráficos normales
+# trellis.par.set(theme = standard.theme("pdf"))
+# 
+# 
+# credit.Datos.Train.Transf.CS <- credit.Datos.Train.Transf.CS  # Este es el dataset normalizado
+# 
+# # Identificar las variables numéricas (continuas)
+# credit.Vars.Continuas <- sapply(credit.Datos.Train.Transf.CS, is.numeric)
+# credit.normalizadasCS <- credit.Datos.Train.Transf.CS[, credit.Vars.Continuas]
 
-credit.Var.Salida.Usada <- c("V16")
-credit.Var.Entrada.Usadas <- setdiff(names(credit.Datos.Todo),credit.Var.Salida.Usada)
-credit.Var.Entrada.Escaladas <- credit.Var.Entrada.Usadas
-
-credit.preProc.CS.Mod<-preProcess(credit.Datos.Train[credit.Var.Entrada.Escaladas],method=c("center","scale"))
-credit.Datos.Train.Transf.CS<-predict(credit.preProc.CS.Mod,credit.Datos.Train)
-credit.Datos.Test.Transf.CS<-predict(credit.preProc.CS.Mod,credit.Datos.Test)
-
-VarToPlot<-credit.Var.Entrada.Escaladas
-
-d1<-densityplot(formula(paste("~",paste(VarToPlot,sep="",collapse =" + "),collapse="")),data=credit.Datos.Train,main="Variables sin Normalizar",plot.points=F)
-
-d2<-densityplot(formula(paste("~",paste(VarToPlot,sep="",collapse =" + "),collapse="")),data=credit.Datos.Train.Transf.CS, main="Variables Normalizadas",plot.points=F)
-
-# Gráficos en blanco y negro (mejor para imprimir)
-trellis.par.set(theme = standard.theme("pdf",color=FALSE))
-print(d1,position=c(0,0,0.5,1),more=T)
-print(d2,position=c(0.5,0,1,1))
-# Volvemos a gráficos normales
-trellis.par.set(theme = standard.theme("pdf"))
-
-
-credit.Datos.Train.Transf.CS <- credit.Datos.Train.Transf.CS  # Este es el dataset normalizado
-
-# Identificar las variables numéricas (continuas)
-credit.Vars.Continuas <- sapply(credit.Datos.Train.Transf.CS, is.numeric)
-credit.normalizadasCS <- credit.Datos.Train.Transf.CS[, credit.Vars.Continuas]
-
-##############
+############## 
 # Crear el gráfico directamente
-ggplot() + 
-  geom_density(aes(x = credit.normalizadasCS$Edad, fill = "Edad"), alpha = 0.5) +
-  geom_density(aes(x = credit.normalizadasCS$Deuda, fill = "Deuda"), alpha = 0.5) +
-  geom_density(aes(x = credit.normalizadasCS$AnyosContratado, fill = "Años Contratado"), alpha = 0.5) +
-  geom_density(aes(x = credit.normalizadasCS$Solvencia, fill = "Solvencia"), alpha = 0.5) +
-  geom_density(aes(x = credit.normalizadasCS$V14, fill = "V14"), alpha = 0.5) +
-  geom_density(aes(x = credit.normalizadasCS$V15, fill = "V15"), alpha = 0.5) +
-  labs(
-    title = "Distribución de Variables Continuas (Density Plot)",
-    x = "Valor",
-    y = "Densidad"
-  ) +
-  scale_fill_manual(
-    values = c("lightgreen", "lightblue", "lightcoral", "lightyellow", "lightpink", "lightgray"),
-    name = "Variables",
-    labels = c("Edad", "Deuda", "Años Contratado", "Solvencia", "V14", "V15")
-  ) +
-  theme_minimal() +
-  #xlim(-1, 2.5)
-theme(legend.title = element_blank())
+# ggplot(data = credit.normalizadasCS) + 
+#   geom_density(aes(x = Edad, fill = "Edad"), alpha = 0.5) +
+#   geom_density(aes(x = Deuda, fill = "Deuda"), alpha = 0.5) +
+#   geom_density(aes(x = AnyosContratado, fill = "Años Contratado"), alpha = 0.5) +
+#   geom_density(aes(x = Solvencia, fill = "Solvencia"), alpha = 0.5) +
+#   geom_density(aes(x = V14, fill = "V14"), alpha = 0.5) +
+#   geom_density(aes(x = V15, fill = "V15"), alpha = 0.5) +
+#   labs(
+#     title = "Distribución de Variables Continuas (Density Plot)",
+#     x = "Valor",
+#     y = "Densidad"
+#   ) +
+#   scale_fill_manual(
+#     values = c("lightgreen", "lightblue", "lightcoral", "lightyellow", "lightpink", "lightgray"),
+#     name = "Variables",
+#     labels = c("Edad", "Deuda", "Años Contratado", "Solvencia", "V14", "V15")
+#   ) +
+#   theme_minimal() +
+#   theme(legend.title = element_blank())
+
 ```
 
 En caso de no querer incluir la normalización center scale en nuestros datos, comentar esto:
 
+## COMENTO ESTE CODIGO PORQUE DA FALLOS Y QUIERO EL VER HTML COMPILADO
 ```{r}
-credit.Datos.Train <- credit.normalizadasCS[credit.normalizadasCS$Origen == "train", ]
-credit.Datos.Test <- credit.normalizadasCS[credit.normalizadasCS$Origen == "test", ]
+# credit.Datos.Train <- credit.normalizadasCS[credit.normalizadasCS$Origen == "train", ]
+# credit.Datos.Test <- credit.normalizadasCS[credit.normalizadasCS$Origen == "test", ]
 ```
 
 RANGE:\
-
+## COMENTO ESTE CODIGO PORQUE DA FALLOS Y QUIERO EL VER HTML COMPILADO
 ```{r}
-#Normalizacion Range [0,1]
-credit.preProc.Range.Mod<-preProcess(credit.Datos.Train[credit.Var.Entrada.Escaladas],
-                                  method="range")
-credit.Datos.Train.Transf.Range<-predict(credit.preProc.Range.Mod,credit.Datos.Train)
-credit.Datos.Test.Transf.Range<-predict(credit.preProc.Range.Mod,credit.Datos.Test)
-
-credit.Vars.Continuas <- sapply(credit.Datos.Train.Transf.Range, is.numeric)
-credit.normalizadasRange <- credit.Datos.Train.Transf.Range[, credit.Vars.Continuas]
-
-##############
-# Crear el gráfico directamente
-ggplot() + 
-  geom_density(aes(x = credit.normalizadasRange$Edad, fill = "Edad"), alpha = 0.5) +
-  geom_density(aes(x = credit.normalizadasRange$Deuda, fill = "Deuda"), alpha = 0.5) +
-  geom_density(aes(x = credit.normalizadasRange$AnyosContratado, fill = "Años Contratado"), alpha = 0.5) +
-  geom_density(aes(x = credit.normalizadasRange$Solvencia, fill = "Solvencia"), alpha = 0.5) +
-  geom_density(aes(x = credit.normalizadasRange$V14, fill = "V14"), alpha = 0.5) +
-  geom_density(aes(x = credit.normalizadasRange$V15, fill = "V15"), alpha = 0.5) +
-  labs(
-    title = "Distribución de Variables Continuas (Density Plot)",
-    x = "Valor",
-    y = "Densidad"
-  ) +
-  scale_fill_manual(
-    values = c("lightgreen", "lightblue", "lightcoral", "lightyellow", "lightpink", "lightgray"),
-    name = "Variables",
-    labels = c("Edad", "Deuda", "Años Contratado", "Solvencia", "V14", "V15")
-  ) +
-  theme_minimal() +
-  xlim(-1, 1)
-theme(legend.title = element_blank())
+# #Normalizacion Range [0,1]
+# credit.preProc.Range.Mod<-preProcess(credit.Datos.Train[credit.Var.Entrada.Escaladas],
+#                                   method="range")
+# credit.Datos.Train.Transf.Range<-predict(credit.preProc.Range.Mod,credit.Datos.Train)
+# credit.Datos.Test.Transf.Range<-predict(credit.preProc.Range.Mod,credit.Datos.Test)
+# 
+# credit.Vars.Continuas <- sapply(credit.Datos.Train.Transf.Range, is.numeric)
+# credit.normalizadasRange <- credit.Datos.Train.Transf.Range[, credit.Vars.Continuas]
+# 
+# ##############
+# # Crear el gráfico directamente
+# ggplot() +
+#   geom_density(aes(x = credit.normalizadasRange$Edad, fill = "Edad"), alpha = 0.5) +
+#   geom_density(aes(x = credit.normalizadasRange$Deuda, fill = "Deuda"), alpha = 0.5) +
+#   geom_density(aes(x = credit.normalizadasRange$AnyosContratado, fill = "Años Contratado"), alpha = 0.5) +
+#   geom_density(aes(x = credit.normalizadasRange$Solvencia, fill = "Solvencia"), alpha = 0.5) +
+#   geom_density(aes(x = credit.normalizadasRange$V14, fill = "V14"), alpha = 0.5) +
+#   geom_density(aes(x = credit.normalizadasRange$V15, fill = "V15"), alpha = 0.5) +
+#   labs(
+#     title = "Distribución de Variables Continuas (Density Plot)",
+#     x = "Valor",
+#     y = "Densidad"
+#   ) +
+#   scale_fill_manual(
+#     values = c("lightgreen", "lightblue", "lightcoral", "lightyellow", "lightpink", "lightgray"),
+#     name = "Variables",
+#     labels = c("Edad", "Deuda", "Años Contratado", "Solvencia", "V14", "V15")
+#   ) +
+#   theme_minimal() +
+#   xlim(-1, 1)
+# theme(legend.title = element_blank())
 ```
 
 En caso de NO querer incluir esta normalización de tipo rango, comentar este código:
@@ -1332,22 +1337,22 @@ credit.Datos.Test <- credit.Datos.Test.Transf.PCA
 ```
 
 ICA:\
-
+## COMENTO ESTE CODIGO PORQUE DA FALLOS Y QUIERO EL VER HTML COMPILADO
 ```{r}
-# IMPORTANTE LEER: EN MI CASO HE TENIDO QUE INSTALAR:
-#           sudo apt install liblapack-dev libblas-dev gfortran
-
-# Sobre credit (se calcula sobre train)
-library(fastICA)
-library(caret)
-
-
-credit.PreProc.Ica.Mod <- preProcess(credit.Datos.Train[credit.Var.Entrada.Continuas], method = c("ica"), n.comp = 2)
-credit.Datos.Train.Transf.ICA <- predict(credit.PreProc.Ica.Mod, credit.Datos.Train)
-credit.Datos.Test.Transf.ICA <- predict(credit.PreProc.Ica.Mod, credit.Datos.Test)
-print(credit.PreProc.Ica.Mod)
-summary(credit.Datos.Train.Transf.ICA)
-summary(credit.Datos.Test.Transf.ICA)
+# # IMPORTANTE LEER: EN MI CASO HE TENIDO QUE INSTALAR:
+# #           sudo apt install liblapack-dev libblas-dev gfortran
+# 
+# # Sobre credit (se calcula sobre train)
+# library(fastICA)
+# library(caret)
+# 
+# 
+# credit.PreProc.Ica.Mod <- preProcess(credit.Datos.Train[credit.Var.Entrada.Continuas], method = c("ica"), n.comp = 2)
+# credit.Datos.Train.Transf.ICA <- predict(credit.PreProc.Ica.Mod, credit.Datos.Train)
+# credit.Datos.Test.Transf.ICA <- predict(credit.PreProc.Ica.Mod, credit.Datos.Test)
+# print(credit.PreProc.Ica.Mod)
+# summary(credit.Datos.Train.Transf.ICA)
+# summary(credit.Datos.Test.Transf.ICA)
 ```
 
 En caso de NO querer incluir ICA, comentar el siguiente código:
@@ -1374,57 +1379,57 @@ En caso de NO querer incluir ICA, comentar el siguiente código:
 
 
 ## GBM
-
+## COMENTO ESTE CODIGO PORQUE DA FALLOS Y QUIERO EL VER HTML COMPILADO
 ```{r}
-# Antes de nada:
-
-# Eliminar la última columna del conjunto de entrenamiento
-credit.Datos.Train <- credit.Datos.Train[, -ncol(credit.Datos.Train)]
-
-# Eliminar la última columna del conjunto de prueba
-credit.Datos.Test <- credit.Datos.Test[, -ncol(credit.Datos.Test)]
-
-
-
-# Definir las variables de entrada y salida
-credit.Var.Salida.Usada <- "V16"  # Cambiar según tu variable de salida
-credit.Vars.Entrada.Usadas <- setdiff(names(credit.Datos.Train), credit.Var.Salida.Usada)
-
-# Configurar el modelo GBM
-set.seed(1234)
-credit.modelo.gbm <- train(
-  credit.Datos.Train[credit.Vars.Entrada.Usadas], # Variables de entrada
-  credit.Datos.Train[[credit.Var.Salida.Usada]], # Variable de salida
-  method = "gbm",                                # Método GBM
-  trControl = trainControl(method = "cv", number = 5), # Validación cruzada
-  verbose = FALSE                                # Evitar logs innecesarios
-)
-
-# Ver los detalles del modelo entrenado
-print(credit.modelo.gbm)
-
-# Predecir en el conjunto de prueba
-credit.Pred.Test <- predict(credit.modelo.gbm, credit.Datos.Test)
-
-# Evaluar el rendimiento en el conjunto de prueba
-confusionMatrix(credit.Pred.Test, credit.Datos.Test[[credit.Var.Salida.Usada]])
+# # Antes de nada:
+# 
+# # Eliminar la última columna del conjunto de entrenamiento
+# credit.Datos.Train <- credit.Datos.Train[, -ncol(credit.Datos.Train)]
+# 
+# # Eliminar la última columna del conjunto de prueba
+# credit.Datos.Test <- credit.Datos.Test[, -ncol(credit.Datos.Test)]
+# 
+# 
+# 
+# # Definir las variables de entrada y salida
+# credit.Var.Salida.Usada <- "V16"  # Cambiar según tu variable de salida
+# credit.Vars.Entrada.Usadas <- setdiff(names(credit.Datos.Train), credit.Var.Salida.Usada)
+# 
+# # Configurar el modelo GBM
+# set.seed(1234)
+# credit.modelo.gbm <- train(
+#   credit.Datos.Train[credit.Vars.Entrada.Usadas], # Variables de entrada
+#   credit.Datos.Train[[credit.Var.Salida.Usada]], # Variable de salida
+#   method = "gbm",                                # Método GBM
+#   trControl = trainControl(method = "cv", number = 5), # Validación cruzada
+#   verbose = FALSE                                # Evitar logs innecesarios
+# )
+# 
+# # Ver los detalles del modelo entrenado
+# print(credit.modelo.gbm)
+# 
+# # Predecir en el conjunto de prueba
+# credit.Pred.Test <- predict(credit.modelo.gbm, credit.Datos.Test)
+# 
+# # Evaluar el rendimiento en el conjunto de prueba
+# confusionMatrix(credit.Pred.Test, credit.Datos.Test[[credit.Var.Salida.Usada]])
 
 ```
 
 Vemos procentaje:\
 
 ```{r}
-# Realizar predicciones en el conjunto de prueba
-predicciones_test <- predict(credit.modelo.gbm, credit.Datos.Test)
-
-# Generar la matriz de confusión
-matriz_confusion <- confusionMatrix(predicciones_test, credit.Datos.Test[[credit.Var.Salida.Usada]])
-
-# Extraer el porcentaje de acierto
-porcentaje_acierto <- matriz_confusion$overall["Accuracy"] * 100
-
-# Mostrar el porcentaje de acierto
-print(paste("Porcentaje de acierto:", round(porcentaje_acierto, 2), "%"))
+# # Realizar predicciones en el conjunto de prueba
+# predicciones_test <- predict(credit.modelo.gbm, credit.Datos.Test)
+# 
+# # Generar la matriz de confusión
+# matriz_confusion <- confusionMatrix(predicciones_test, credit.Datos.Test[[credit.Var.Salida.Usada]])
+# 
+# # Extraer el porcentaje de acierto
+# porcentaje_acierto <- matriz_confusion$overall["Accuracy"] * 100
+# 
+# # Mostrar el porcentaje de acierto
+# print(paste("Porcentaje de acierto:", round(porcentaje_acierto, 2), "%"))
 
 ```
 
@@ -1605,76 +1610,14 @@ plot(modelo_nnet)
 predicciones_nnet <- predict(modelo_nnet, newdata = credit.Datos.Test[vars_predictoras])
 
 # Matriz de confusión
-confusionMatrix(
+matrizConfusionNNET <- confusionMatrix(
   data = predicciones_nnet,
   reference = credit.Datos.Test[[var_objetivo]],
   positive = "aprobada" # Cambia esto por el nivel positivo correcto
 )
 
-```
-
-
-
-
-
-
-```{r}
-
-# Definir las variables de entrada y salida
-credit.Var.Salida.Usada <- "V16"  # Cambiar según tu variable de salida
-credit.Vars.Entrada.Usadas <- setdiff(names(credit.Datos.Train), credit.Var.Salida.Usada)
-
-
-set.seed(1234) # Para reproducibilidad
-
-# Configuración de validación cruzada
-control_rf <- trainControl(
-  method = "cv",      # Validación cruzada
-  number = 5,         # Número de folds
-  verboseIter = FALSE # Evitar logs en la consola
-)
-
-# Entrenamiento del modelo RF
-system.time(
-  credit.modelo.rf <- train(
-    x = credit.Datos.Train[credit.Vars.Entrada.Usadas], 
-    y = credit.Datos.Train.SinNA[[credit.Var.Salida.Usada]], 
-    method = "rf",
-    trControl = trainControl(method = "cv", number = 5),
-    tuneGrid = expand.grid(mtry = c(2, 3, 4)),
-    ntree = 500
-  )
-)
-
-
-# Resumen del modelo
-print(credit.modelo.rf)
-
-
-# Resumen del modelo
-print(credit.modelo.rf)
-
-
-
-# Predicciones en el conjunto de prueba
-credit.Pred.Test.rf <- predict(credit.modelo.rf, credit.Datos.Test)
-
-# Matriz de confusión para evaluar el rendimiento
-confusion_rf <- confusionMatrix(credit.Pred.Test.rf, credit.Datos.Test[[credit.Var.Salida.Usada]])
-
-# Ver la matriz de confusión y la precisión
-print(confusion_rf)
-
-# Porcentaje de acierto
-porcentaje_acierto_rf <- confusion_rf$overall["Accuracy"] * 100
-print(paste("Porcentaje de acierto con RF:", round(porcentaje_acierto_rf, 2), "%"))
-
-
-## NO TERMINADO FALTAN MAS COSAS
-
-
-
-
+# Extraer y mostrar el porcentaje de aciertos (Accuracy)
+print(paste("Porcentaje de aciertos: ", round(matrizConfusionNNET$overall["Accuracy"] * 100, 2), "%", sep = ""))
 
 ```
 
