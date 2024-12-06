@@ -97,24 +97,24 @@ Comprobamos que aproximadamente el 5% de los clientes son menores de edad, al no
 
 Decidimos que es interesante analizar V2 ya que su media y mediana son parecidas, lo cual sugiere que la distribución puede ser simétrica (cercana a normal).
 
-Generamos un histograma base con la función hist() de R para la variable V2 con probability = TRUE para mostrar la densidad en vez de las frecuencias absolutas.
+Generamos un histograma base con la función hist() de R para la variable V2 con probability = TRUE para mostrar la densidad en vez de las frecuencias absolutas. Además añadimos una línea de densidad para observar la forma de la distribución de V2, usando la función lines() y especificando el color "blue" para la curva.
 
 ```{r}
 hist(credit$V2, probability = TRUE, main = "Histograma de V2 con Curva de Densidad")
-```
-
-
-Añadimos una línea de densidad para observar la forma de la distribución de V2, usando la función lines() y especificando el color "blue" para la curva.
-```{r}
 lines(density(credit$V2, na.rm = TRUE), col = "blue")
 ```
 
 Creamos un histograma con ggplot2 para la variable V2 del dataframe 'credit', estableciendo aesthetic mapping (aes) para usar V2 en el eje x y ademas y añadimos un histograma con color de contorno naranja y relleno naranja claro (alpha = 0.2) y definimos intervalos de 5 unidades usando el argumento breaks.
 
 ```{r}
-myHist = ggplot(data = credit, aes(credit$V2))
-  + geom_histogram(col = "orange", fill = "orange", alpha = 0.2, breaks = seq(0, 80, by = 5))
-  + labs(title = "Histograma para la variable V2 con línea de densidad")
+myHist <- ggplot(data = credit, aes(x = V2)) +
+  geom_histogram(col = "orange", fill = "orange", alpha = 0.2, breaks = seq(0, 80, by = 5)) +
+  geom_density(col = "blue", lwd = 1) +
+  labs(title = "Histograma para la variable V2 con línea de densidad", x = "V2", y = "Frecuencia")
+
+# Mostrar el gráfico
+myHist
+
 ```
 
 Añadimos una línea vertical en el histograma de ggplot para marcar la media de V2 usando geom_vline() y especificando la posición con xintercept = mean() y hacemos lo mismo para marcar la mediana.
@@ -350,18 +350,13 @@ Realizamos un resumen estadístico de la variable V15 para obtener una visión g
 summary(credit$V15)
 ```
 
-Generamos un histograma básico para observar la distribución de V15. Usamos probability = TRUE para mostrar el histograma en términos de densidad.
+Generamos un histograma básico para observar la distribución de V15. Usamos probability = TRUE para mostrar el histograma en términos de densidad. Además añadimos una curva de densidad a la gráfica para visualizar mejor la forma de la distribución, usando la función density() con na.rm = TRUE para excluir valores NA.
 
 ```{r}
-hist(credit$V15, probability = TRUE,
-     main = "Histograma de V15 con Curva de Densidad")
-```
-
-Añadimos una curva de densidad a la gráfica para visualizar mejor la forma de la distribución, usando la función density() con na.rm = TRUE para excluir valores NA.
-
-```{r}
+hist(credit$V15, probability = TRUE,main = "Histograma de V15 con Curva de Densidad")
 lines(density(credit$V15, na.rm = TRUE), col = "blue")
 ```
+
 
 
 Observamos que muchos valores altos de V15 hacen difícil ver los valores menores. Para solucionar esto, usamos ggplot2 para crear un histograma que enfoque la escala en valores menores, estableciendo los intervalos hasta 1000 (ajustable según el rango de interés).
@@ -1467,30 +1462,160 @@ modelLookup(("rf"))
 Como en random forest no permite datos NA hay que imputarlas o eliminarlas:
 
 
-si las imputamos
-
 ```{r}
-preProc <- preProcess(credit.Datos.Train[credit.Vars.Entrada.Usadas], method = "medianImpute")
-credit.Datos.Train.Imputed <- predict(preProc, credit.Datos.Train)
 
-```
+# 1. Cargar librerías necesarias
+library(caret)      # Para entrenar y validar el modelo
+library(randomForest) # Para Random Forest (usado internamente por caret)
 
 
+credit.trainIdx <- readRDS("credit.trainIdx.rds")
+credit.Datos.Train <- credit[credit.trainIdx,]
+credit.Datos.Test <- credit[-credit.trainIdx,]
 
-si las eliminamos
-```{r}
 
 credit.Datos.Train.SinNA <- na.omit(credit.Datos.Train)
 
-```
 
-
-para verificar si sigue habiendo valores NA
-
-```{r}
 any(is.na(credit.Datos.Train.SinNA))
 
+
+
+
+
+# 2. Verificar las estructuras de las bases de datos
+# Asegúrate de que la variable respuesta esté presente y sea un factor (para clasificación)
+str(credit.Datos.Train.SinNA)
+str(credit.Datos.Test)
+
+# 3. Definir variables predictoras y la variable objetivo
+# Cambia "VariableObjetivo" por el nombre real de tu variable de salida
+var_objetivo <- "V16"
+vars_predictoras <- setdiff(names(credit.Datos.Train.SinNA), var_objetivo)
+
+# 4. Asegurarse de que la variable objetivo sea un factor
+credit.Datos.Train.SinNA[[var_objetivo]] <- as.factor(credit.Datos.Train.SinNA[[var_objetivo]])
+#credit.Datos.Test[[var_objetivo]] <- as.factor(credit.Datos.Test[[var_objetivo]])
+
+# 5. Configuración del control para validación cruzada
+control_rf <- trainControl(
+  method = "cv",               # Validación cruzada
+  number = 5,                  # Número de folds
+  verboseIter = TRUE,          # Mostrar progreso
+  classProbs = TRUE,           # Calcular probabilidades de clase (si aplica)
+  summaryFunction = twoClassSummary # Métricas adicionales como ROC (para clasificación binaria)
+)
+
+# 6. Definir el grid de hiperparámetros a probar
+# Ajusta `mtry` al número de predictores en tus datos
+tune_grid_rf <- expand.grid(
+  mtry = seq(2, length(vars_predictoras), by = 2) # Rango de mtry a explorar
+)
+
+# 7. Entrenar el modelo Random Forest
+set.seed(123) # Para reproducibilidad
+modelo_rf <- train(
+  x = credit.Datos.Train.SinNA[vars_predictoras], # Variables predictoras
+  y = credit.Datos.Train.SinNA[[var_objetivo]],   # Variable objetivo
+  method = "rf",                            # Random Forest
+  trControl = control_rf,                   # Configuración de validación
+  tuneGrid = tune_grid_rf,                  # Grid de hiperparámetros
+  ntree = 500                               # Número de árboles
+)
+
+# 8. Resumen del modelo entrenado
+print(modelo_rf)
+plot(modelo_rf)
+
+# 9. Guardar el modelo entrenado
+saveRDS(modelo_rf, "modelo_rf.rds")
+
+# 10. Evaluación del modelo en el conjunto de prueba
+# Predicción en el conjunto de prueba
+predicciones <- predict(modelo_rf, newdata = credit.Datos.Test[vars_predictoras])
+
+# Generar matriz de confusión
+confusionMatrix(
+  data = predicciones,
+  reference = credit.Datos.Test[[var_objetivo]],
+  positive = "aprobada" # Cambia esto por la clase objetivo positiva
+)
+
+
 ```
+
+
+
+
+
+
+## Redes neuronales
+
+Pasamos ahroa a entrenar el modelo de redes neuronales, primero vemis los posibkes hiperparametros disponbles que tiene:
+
+```{r}
+modelLookup(("nnet"))
+```
+
+
+```{r}
+# 1. Cargar librerías necesarias
+library(caret) # Para entrenar el modelo
+library(nnet)  # Paquete para redes neuronales
+
+# 2. Verificar las estructuras de las bases de datos
+# Define el nombre de la variable objetivo y las variables predictoras
+var_objetivo <- "V16" # Cambia esto por tu variable de salida
+vars_predictoras <- setdiff(names(credit.Datos.Train), var_objetivo)
+
+
+# 3. Configuración del control para validación cruzada
+control_nnet <- trainControl(
+  method = "cv",               # Validación cruzada
+  number = 5,                  # Número de folds
+  verboseIter = TRUE,          # Mostrar progreso
+  classProbs = TRUE,           # Probabilidades de clase (para clasificación)
+  summaryFunction = twoClassSummary # Métricas adicionales como ROC
+)
+
+# 4. Definir el grid de hiperparámetros
+tune_grid_nnet <- expand.grid(
+  size = c(1, 3, 5, 7),  # Número de nodos en la capa oculta
+  decay = c(0, 0.01, 0.1) # Parámetro de regularización (previene sobreajuste)
+)
+
+# 5. Entrenar el modelo con nnet
+set.seed(123) # Para reproducibilidad
+modelo_nnet <- train(
+  x = credit.Datos.Train[vars_predictoras], # Variables predictoras
+  y = credit.Datos.Train[[var_objetivo]],   # Variable objetivo
+  method = "nnet",                          # Especificamos nnet
+  trControl = control_nnet,                 # Configuración de validación
+  tuneGrid = tune_grid_nnet,                # Grid de hiperparámetros
+  trace = FALSE,                            # Evita imprimir mensajes internos de nnet
+  maxit = 200                               # Número máximo de iteraciones
+)
+
+# 6. Resumen del modelo entrenado
+print(modelo_nnet)
+plot(modelo_nnet)
+
+# 7. Evaluar el modelo en el conjunto de prueba
+# Predicción en el conjunto de prueba
+predicciones_nnet <- predict(modelo_nnet, newdata = credit.Datos.Test[vars_predictoras])
+
+# Matriz de confusión
+confusionMatrix(
+  data = predicciones_nnet,
+  reference = credit.Datos.Test[[var_objetivo]],
+  positive = "aprobada" # Cambia esto por el nivel positivo correcto
+)
+
+```
+
+
+
+
 
 
 ```{r}
@@ -1512,7 +1637,7 @@ control_rf <- trainControl(
 # Entrenamiento del modelo RF
 system.time(
   credit.modelo.rf <- train(
-    x = credit.Datos.Train.SinNA[credit.Vars.Entrada.Usadas], 
+    x = credit.Datos.Train[credit.Vars.Entrada.Usadas], 
     y = credit.Datos.Train.SinNA[[credit.Var.Salida.Usada]], 
     method = "rf",
     trControl = trainControl(method = "cv", number = 5),
@@ -1551,21 +1676,33 @@ print(paste("Porcentaje de acierto con RF:", round(porcentaje_acierto_rf, 2), "%
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 ```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
