@@ -1,0 +1,476 @@
+---
+title: "normalizar"
+output: html_document
+date: "2024-11-20"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Entrenamiento SVM
+
+Partimos de los datos preprocesados. Los vamos a almacenar en una BD para acceder a ellos cuando sea necesario.
+
+```{r}
+library(caret)
+credit.Datos.Train.Save <- credit.Datos.Train
+credit.Datos.Test.Save <- credit.Datos.Test
+credit.Datos.Train.Save$Origen <- NULL
+credit.Datos.Test.Save$Origen <- NULL
+```
+
+Ejecutar este chunk para volver a procesar los datos.
+
+```{r}
+credit.Datos.Train <- credit.Datos.Train.Save
+credit.Datos.Test <- credit.Datos.Test.Save
+```
+
+Planteamos una posible eliminacion de las siguientes variables: genero y V12
+
+```{r}
+credit.Datos.Test$Genero <- NULL
+credit.Datos.Train$V12 <- NULL
+credit.Datos.Test$Genero <- NULL
+credit.Datos.Train$V12 <- NULL
+```
+
+## Transformacion de distribuciones asimetricas
+
+Mostramos las distribuciones de las variables numericas
+
+```{r}
+#Transformación de distribuciones asimetricas
+credit.Var.Entrada.Continuas <- which(sapply(credit.Datos.Train, is.numeric))
+credit.Datos.Train[credit.Var.Entrada.Continuas]
+
+ggplot() + 
+  geom_density(aes(x = credit.Datos.Train$Edad, fill = "Edad"), alpha = 0.5) +
+  geom_density(aes(x = credit.Datos.Train$Deuda, fill = "Deuda"), alpha = 0.5) +
+  geom_density(aes(x = credit.Datos.Train$AnyosContratado, fill = "Años Contratado"), alpha = 0.5) +
+  geom_density(aes(x = credit.Datos.Train$Solvencia, fill = "Solvencia"), alpha = 0.5) +
+  geom_density(aes(x = credit.Datos.Train$V14, fill = "V14"), alpha = 0.5) +
+  geom_density(aes(x = credit.Datos.Train$V15, fill = "V15"), alpha = 0.5) +
+  labs(
+    title = "Distribución de Variables Continuas (Density Plot)",
+    x = "Valor",
+    y = "Densidad"
+  ) +
+  scale_fill_manual(
+    values = c("lightgreen", "lightblue", "lightcoral", "lightyellow", "lightpink", "lightgray"),
+    name = "Variables",
+    labels = c("Edad", "Deuda", "Años Contratado", "Solvencia", "V14", "V15")
+  ) +
+  theme_minimal() +
+  xlim(-1, 100)
+theme(legend.title = element_blank())
+```
+
+```{r}
+credit.Datos.Train.Asimetricas <- credit.Datos.Train
+credit.Datos.Test.Asimetricas <- credit.Datos.Test
+```
+
+```{r}
+#Edad
+Var<-"Edad"
+hist(credit.Datos.Train$Edad, 
+     main = c("Histograma de ",Var),  # Título del gráfico
+     xlab = Var,                # Etiqueta del eje X
+     col = "blue",                 # Color de las barras
+     border = "black",             # Color del borde de las barras
+     breaks = 20)
+preProcValues <- preProcess(credit.Datos.Train.Asimetricas[Var], method = "BoxCox")
+credit.Datos.Train.Asimetricas[Var] <- predict(preProcValues, credit.Datos.Train.Asimetricas[Var])
+credit.Datos.Test.Asimetricas[Var] <- predict(preProcValues, credit.Datos.Test.Asimetricas[Var])
+
+# Histograma para credit.Datos.Train.Asimetricas$Edad
+hist(credit.Datos.Train.Asimetricas$Edad, 
+     main = paste("Histograma de", Var, "en credit.Datos.Train.Asimetricas"), 
+     xlab = Var, col = "green", border = "black", breaks = 20)
+
+```
+
+```{r}
+#Deuda
+Var<-"Deuda"
+hist(credit.Datos.Train$Deuda, 
+     main = c("Histograma de ",Var),  # Título del gráfico
+     xlab = Var,                # Etiqueta del eje X
+     col = "blue",                 # Color de las barras
+     border = "black",             # Color del borde de las barras
+     breaks = 20)
+preProcValues <- preProcess(credit.Datos.Train.Asimetricas[Var], method = "YeoJohnson")
+credit.Datos.Train.Asimetricas[Var] <- predict(preProcValues, credit.Datos.Train.Asimetricas[Var])
+credit.Datos.Test.Asimetricas[Var] <- predict(preProcValues, credit.Datos.Test.Asimetricas[Var])
+
+hist(credit.Datos.Train.Asimetricas$Deuda, 
+     main = paste("Histograma de", Var, "en credit.Datos.Train.Asimetricas"), 
+     xlab = Var, col = "green", border = "black", breaks = 10)
+```
+
+```{r}
+#AnyosContratado
+Var<-"AnyosContratado"
+hist(credit.Datos.Train$AnyosContratado, 
+     main = c("Histograma de ",Var),  # Título del gráfico
+     xlab = Var,                # Etiqueta del eje X
+     col = "blue",                 # Color de las barras
+     border = "black",             # Color del borde de las barras
+     breaks = 20)
+preProcValues <- preProcess(credit.Datos.Train.Asimetricas[Var], method = "YeoJohnson")
+credit.Datos.Train.Asimetricas[Var] <- predict(preProcValues, credit.Datos.Train.Asimetricas[Var])
+credit.Datos.Test.Asimetricas[Var] <- predict(preProcValues, credit.Datos.Test.Asimetricas[Var])
+
+hist(credit.Datos.Train.Asimetricas$AnyosContratado, 
+     main = paste("Histograma de", Var, "en credit.Datos.Train.Asimetricas"), 
+     xlab = Var, col = "green", border = "black", breaks = 10)
+```
+
+```{r}
+#Solvencia
+Var<-"Solvencia"
+hist(credit.Datos.Train$Solvencia, 
+     main = c("Histograma de ",Var),  # Título del gráfico
+     xlab = Var,                # Etiqueta del eje X
+     col = "blue",                 # Color de las barras
+     border = "black",             # Color del borde de las barras
+     breaks = 20)
+preProcValues <- preProcess(credit.Datos.Train.Asimetricas[Var], method = "BoxCox")
+credit.Datos.Train.Asimetricas[Var] <- predict(preProcValues, credit.Datos.Train.Asimetricas[Var])
+credit.Datos.Test.Asimetricas[Var] <- predict(preProcValues, credit.Datos.Test.Asimetricas[Var])
+
+hist(credit.Datos.Train.Asimetricas$Solvencia, 
+     main = paste("Histograma de", Var, "en credit.Datos.Train.Asimetricas"), 
+     xlab = Var, col = "green", border = "black", breaks = 10)
+```
+
+```{r}
+#v14
+Var<-"V14"
+hist(credit.Datos.Train$V14, 
+     main = c("Histograma de ",Var),  # Título del gráfico
+     xlab = Var,                # Etiqueta del eje X
+     col = "blue",                 # Color de las barras
+     border = "black",             # Color del borde de las barras
+     breaks = 20)
+preProcValues <- preProcess(credit.Datos.Train.Asimetricas[Var], method = "YeoJohnson")
+credit.Datos.Train.Asimetricas[Var] <- predict(preProcValues, credit.Datos.Train.Asimetricas[Var])
+credit.Datos.Test.Asimetricas[Var] <- predict(preProcValues, credit.Datos.Test.Asimetricas[Var])
+
+hist(credit.Datos.Train.Asimetricas$V14, 
+     main = paste("Histograma de", Var, "en credit.Datos.Train.Asimetricas"), 
+     xlab = Var, col = "green", border = "black", breaks = 20)
+```
+
+```{r}
+#v15
+Var<-"V15"
+hist(credit.Datos.Train$V15, 
+     main = c("Histograma de ",Var),  # Título del gráfico
+     xlab = Var,                # Etiqueta del eje X
+     col = "blue",                 # Color de las barras
+     border = "black",             # Color del borde de las barras
+     breaks = 20)
+preProcValuesBC <- preProcess(credit.Datos.Train.Asimetricas[Var], method = "YeoJohnson")
+credit.Datos.Train.Asimetricas[Var] <- predict(preProcValuesBC, credit.Datos.Train.Asimetricas[Var])
+credit.Datos.Test.Asimetricas[Var] <- predict(preProcValuesBC, credit.Datos.Test.Asimetricas[Var])
+
+hist(credit.Datos.Train.Asimetricas$V15, 
+     main = paste("Histograma de", Var, "en credit.Datos.Train.Asimetricas"), 
+     xlab = Var, col = "green", border = "black", breaks = 20)
+```
+
+Si queremos que aplique
+
+```{r}
+credit.Datos.Train <- credit.Datos.Train.Asimetricas
+credti.datos.Test <- credit.Datos.Test.Asimetricas
+```
+
+Mostramos resultados
+
+```{r}
+ggplot() + 
+  geom_density(aes(x = credit.Datos.Train$Edad, fill = "Edad"), alpha = 0.5) +
+  geom_density(aes(x = credit.Datos.Train$Deuda, fill = "Deuda"), alpha = 0.5) +
+  geom_density(aes(x = credit.Datos.Train$AnyosContratado, fill = "Años Contratado"), alpha = 0.5) +
+  geom_density(aes(x = credit.Datos.Train$Solvencia, fill = "Solvencia"), alpha = 0.5) +
+  geom_density(aes(x = credit.Datos.Train$V14, fill = "V14"), alpha = 0.5) +
+  geom_density(aes(x = credit.Datos.Train$V15, fill = "V15"), alpha = 0.5) +
+  labs(
+    title = "Distribución de Variables Continuas (Density Plot)",
+    x = "Valor",
+    y = "Densidad"
+  ) +
+  scale_fill_manual(
+    values = c("lightgreen", "lightblue", "lightcoral", "lightyellow", "lightpink", "lightgray"),
+    name = "Variables",
+    labels = c("Edad", "Deuda", "Años Contratado", "Solvencia", "V14", "V15")
+  ) +
+  theme_minimal() +
+theme(legend.title = element_blank())
+```
+
+## Normalizacion
+
+### Usando Center-Scale
+
+```{r}
+credit.Var.Salida.Usada <- c("V16")
+credit.Var.Entrada.Usadas <- setdiff(names(credit.Datos.Train),credit.Var.Salida.Usada)
+
+credit.preProc.CS.Mod<-preProcess(credit.Datos.Train[credit.Var.Entrada.Usadas],
+                                  method=c("center","scale"))
+credit.Datos.Train.CS <- predict(credit.preProc.CS.Mod,credit.Datos.Train)
+credit.Datos.Test.CS <- predict(credit.preProc.CS.Mod,credit.Datos.Test)
+```
+
+### Usando Range
+
+```{r}
+credit.Var.Salida.Usada <- c("V16")
+credit.Var.Entrada.Usadas <- setdiff(names(credit.Datos.Train),credit.Var.Salida.Usada)
+
+credit.preProc.CS.Mod<-preProcess(credit.Datos.Train[credit.Var.Entrada.Usadas],
+                                  method=c("range"))
+credit.Datos.Train.Rg <- predict(credit.preProc.CS.Mod,credit.Datos.Train)
+credit.Datos.Test.Rg <- predict(credit.preProc.CS.Mod,credit.Datos.Test)
+```
+
+Si queremos hacer dummys sobre los datos normalizados con CenterScale ejecutar este chunk:
+
+```{r}
+credit.Datos.Train <- credit.Datos.Train.CS
+credit.Datos.Test <- credit.Datos.Test.CS
+```
+
+Si queremos hacer dummys sobre los datos normalizados con Range ejecutar este chunk
+
+```{r}
+credit.Datos.Train <- credit.Datos.Train.Rg
+credit.Datos.Test <- credit.Datos.Test.Rg
+```
+
+## Dummys
+
+```{r}
+# Definir la variable de salida y las variables de entrada
+credit.Var.Salida.Usada <- "V16"
+credit.Vars.Entrada.Usadas <- setdiff(names(credit.Datos.Train), credit.Var.Salida.Usada)
+
+# Convertir la variable de salida a factor (para clasificación)
+credit.Datos.Train[[credit.Var.Salida.Usada]] <- as.factor(credit.Datos.Train[[credit.Var.Salida.Usada]])
+credit.Datos.Test[[credit.Var.Salida.Usada]] <- as.factor(credit.Datos.Test[[credit.Var.Salida.Usada]])
+
+# Crear el modelo dummy solo para las variables de entrada
+dummy_model <- dummyVars(~ ., data = credit.Datos.Train[, credit.Vars.Entrada.Usadas], fullRank = TRUE)
+
+# Transformar las variables de entrada a dummies (sin tocar la salida)
+credit.Datos.Train.Dummies <- data.frame(predict(dummy_model, credit.Datos.Train[, credit.Vars.Entrada.Usadas]))
+credit.Datos.Test.Dummies <- data.frame(predict(dummy_model, credit.Datos.Test[, credit.Vars.Entrada.Usadas]))
+
+# Añadir la variable de salida de nuevo a los conjuntos transformados
+credit.Datos.Train.Dummies[[credit.Var.Salida.Usada]] <- credit.Datos.Train[[credit.Var.Salida.Usada]]
+credit.Datos.Test.Dummies[[credit.Var.Salida.Usada]] <- credit.Datos.Test[[credit.Var.Salida.Usada]]
+
+```
+
+Si queremos eliminarla de los Dummys ejecutar este chunk
+
+```{r}
+credit.Datos.Train <- credit.Datos.Train.Dummies
+credit.Datos.Test <- credit.Datos.Test.Dummies
+
+credit.Datos.Train$Origen <- NULL
+credit.Datos.Test$Origen <- NULL
+```
+
+## Eliminamos variables con poca varianza
+
+```{r}
+nzv.Train <- nearZeroVar(credit.Datos.Train)
+nzv.Train
+credit.Datos.Train <- credit.Datos.Train[, -nzv.Train]
+credit.Datos.Test <- credit.Datos.Test[, names(credit.Datos.Train)]
+```
+
+## Transformaciones de relaciones entre variables
+
+### PCA
+
+```{r}
+credit.PreProc.Pca.Mod <- preProcess(credit.Datos.Train, method = "pca", thresh = 0.95)  # 95% de la varianza explicada
+credit.PreProc.Pca.Mod
+credit.Datos.Train.Pca <- predict(credit.PreProc.Pca.Mod, credit.Datos.Train)
+credit.Datos.Test.Pca <- predict(credit.PreProc.Pca.Mod, credit.Datos.Test)
+```
+
+### ICA
+
+```{r}
+credit.PreProc.Ica.Mod <- preProcess(credit.Datos.Train, method = "ica", n.comp = 10)  # 10 componentes independientes
+credit.PreProc.Ica.Mod
+credit.Datos.Train.Ica <- predict(credit.PreProc.Ica.Mod, credit.Datos.Train)
+credit.Datos.Test.Ica <- predict(credit.PreProc.Ica.Mod, credit.Datos.Test)
+```
+
+Si queremos que incluya PCA
+
+```{r}
+credit.Datos.Train <- credit.Datos.Train.Pca
+credit.Datos.Test <- credit.Datos.Test.Pca
+```
+
+Si queremos que incluya ICA
+
+```{r}
+credit.Datos.Train <- credit.Datos.Train.Ica
+credit.Datos.Test <- credit.Datos.Test.Ica
+```
+
+## Modelo SVM
+
+```{r}
+set.seed(1234)
+credit.modelo.svm <- train(
+  V16 ~ .,  # Variable de salida ~ Variables de entrada
+  data = credit.Datos.Train,                                    # Datos de entrenamiento
+  method = "svmRadial",                                          # Especificamos el método SVM con kernel radial
+  trControl = trainControl(method = "cv", number = 10),           # Validación cruzada de 5 pliegues
+  tuneLength = 10                                                # Probar diferentes valores de parámetros
+)
+```
+
+## Submuestreo de clases desvalancedas
+
+```{r}
+credit.Var.Salida.Usada <- c("V16")
+credit.Vars.Entrada.Usadas <- setdiff(names(credit.Datos.Train),credit.Var.Salida.Usada)
+```
+
+### down-sampling:
+
+Consiste en reducir el n´umero de ejemplos de las clases m´as frecuentes para igualar la clase menos frecuente.
+
+```{r}
+set.seed(12345)
+credit.Datos.Train.downsmpld<-downSample(x=credit.Datos.Train[credit.Vars.Entrada.Usadas],
+                                       y=credit.Datos.Train[[credit.Var.Salida.Usada]],
+                                       yname=credit.Var.Salida.Usada)
+```
+
+### up-sampling:
+
+En este caso hace lo contrario, remuestrea (con reemplazamiento) la clase minoritaria para igualarla a la mayoritaria (repite varios datos).
+
+```{r}
+set.seed(1234)
+credit.Datos.Train.upsmpld<-upSample(x=credit.Datos.Train[credit.Vars.Entrada.Usadas],
+                                   y=credit.Datos.Train[[credit.Var.Salida.Usada]],
+                                   yname=credit.Var.Salida.Usada)
+```
+
+Creamos un modelo para cada una de estos:
+
+```{r}
+set.seed(1234)
+credit.modelo.svm.downsmpld <- train(
+  V16 ~ .,  # Variable de salida ~ Variables de entrada
+  data = credit.Datos.Train.downsmpld,                                    # Datos de entrenamiento
+  method = "svmRadial",                                          # Especificamos el método SVM con kernel radial
+  trControl = trainControl(method = "cv", number = 10),           # Validación cruzada de 5 pliegues
+  tuneLength = 10                                                # Probar diferentes valores de parámetros
+)
+```
+
+```{r}
+set.seed(1234)
+credit.modelo.svm.upsmpld <- train(
+  V16 ~ .,  # Variable de salida ~ Variables de entrada
+  data = credit.Datos.Train.upsmpld,                                    # Datos de entrenamiento
+  method = "svmRadial",                                          # Especificamos el método SVM con kernel radial
+  trControl = trainControl(method = "cv", number = 10),           # Validación cruzada de 5 pliegues
+  tuneLength = 10                                                # Probar diferentes valores de parámetros
+)
+```
+
+Comprobar downSample
+
+```{r}
+credit.modelo.svm <- credit.modelo.svm.downsmpld 
+```
+
+Comprobar upSample
+
+```{r}
+credit.modelo.svm <- credit.modelo.svm.upsmpld
+```
+
+## Preprcesado 4: Selección de variables
+
+```{r}
+#Ver importancia de las variables de entrada
+#Metodo -> varImp()
+varImp(credit.modelo.svm)
+#Ver seleccion de variables del modelo 
+#Metodo -> predictors(modelo$finalModel)
+predictors(credit.modelo.svm$finalModel)
+```
+
+Observamos que hay variables con muy poca importancia, vamos a probar a eliminarlas a ver si nuestro modelo mejora.
+
+```         
+PC13      2.183 
+PC5       1.403 
+PC16      1.258 
+PC10      1.246 
+PC8       0.000
+```
+
+```{r}
+credit.Datos.Train$PC8 <- NULL
+credit.Datos.Test$PC8 <- NULL
+```
+
+Volvemos a evaluar el modelo:
+
+```{r}
+set.seed(1234)
+credit.modelo.svm <- train(
+  V16 ~ .,  # Variable de salida ~ Variables de entrada
+  data = credit.Datos.Train,                                    # Datos de entrenamiento
+  method = "svmRadial",                                          # Especificamos el método SVM con kernel radial
+  trControl = trainControl(method = "cv", number = 10),           # Validación cruzada de 5 pliegues
+  tuneLength = 10                                                # Probar diferentes valores de parámetros
+)
+```
+
+## Evaluacion final del modelo:
+
+```{r}
+# Ver los detalles del modelo entrenado
+print(credit.modelo.svm)
+
+# Predecir en el conjunto de prueba
+credit.Pred.Test <- predict(credit.modelo.svm, credit.Datos.Test)
+
+# Evaluar el rendimiento en el conjunto de prueba
+confusionMatrix(credit.Pred.Test, credit.Datos.Test[[credit.Var.Salida.Usada]])
+
+
+#Mostrar porcentaje final
+# Realizar predicciones en el conjunto de prueba
+predicciones_test <- predict(credit.modelo.svm, credit.Datos.Test)
+
+# Generar la matriz de confusión
+matriz_confusion <- confusionMatrix(predicciones_test, credit.Datos.Test[[credit.Var.Salida.Usada]])
+
+# Extraer el porcentaje de acierto
+porcentaje_acierto <- matriz_confusion$overall["Accuracy"] * 100
+
+# Mostrar el porcentaje de acierto
+print(paste("Porcentaje de acierto:", round(porcentaje_acierto, 2), "%"))
+
+```

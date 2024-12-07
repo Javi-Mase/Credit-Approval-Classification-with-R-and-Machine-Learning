@@ -15,7 +15,7 @@ This is an R Markdown document. Markdown is a simple formatting syntax for autho
 When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
 
 ```{r cars}
-setwd("/home/manu/FIUM/TERCERO/PrimerCuatri/AC/Proyecto/PracticasAC")
+#setwd("/home/manu/FIUM/TERCERO/PrimerCuatri/AC/Proyecto/PracticasAC")
 
 if(!require("caret")) {
   install.packages("caret", dependencies = c("Depends", "Suggests"))
@@ -88,7 +88,7 @@ colnames(combined_credit)[colnames(combined_credit) == "V13"] <- "composicionPob
 
 [**Tratamiento de valores fuera de rango:**]{.underline}
 
-Para ello, vamos a diseñar una función que detecte outliners. Como hemos aprendido a hacerlo es con la siguiente fórmula: si valor **∈** [Q1 - 1.5 \* RI, Q3 + 1.5 \* RI] se considera outliner. Siendo RI (Rango Intercuatil).
+Para ello, vamos a diseñar una función que detecte outliners. Como hemos aprendido a hacerlo es con la siguiente fórmula: si valor **∈** [Q1 - 1.5 \* RI, Q3 + 1.5 \* RI] se considera outliner. Siendo RI (Rango Intercuatil). Solo miramos el conjunto de Train para que el conjunto de Test no se aproveche de dichos datos (p. independecia de conjuntos).
 
 ```{r}
 credit.Datos.Train <- combined_credit[combined_credit$Origen == "train", ]
@@ -107,7 +107,7 @@ credit.Datos.continuas <- credit.Datos.Train[, sapply(credit.Datos.Train, is.num
 outliners <- lapply(credit.Datos.continuas, detectar_outliers)
 
 # Contar los outliers por variable
-sumas_outliners <- sapply(outliners, sum)
+sumas_outliners <- sapply(outliners, function(x) sum(x, na.rm = TRUE))
 sumas_outliners
 ```
 
@@ -124,7 +124,7 @@ proporciones <- lapply(sumas_outliners, proporcion)
 proporciones
 ```
 
-Según hemos estado investigando cuando el porcentaje de outliners se encuentra entre 5% y 15% hay que tratarlos ya que pueden ser problemáticos. Siendo estos: AnyosContratado, Solvencia, V14 y V15:
+Según hemos estado investigando cuando el porcentaje de outliners es superior a 5% hay que tratarlos ya que pueden ser problemáticos. En este caso como mucho tenemos un 15% que es un valor alto, pero tampoco es elevadísimo. Siendo estos: AnyosContratado, Solvencia y V15:
 
 ```{r}
 boxplot(credit.Datos.Train$AnyosContratado,boxwex=0.15,ylab="AnyosContratado")
@@ -134,10 +134,6 @@ abline(h=mean(credit.Datos.Train$AnyosContratado,na.rm=T),lty=2)
 boxplot(credit.Datos.Train$Solvencia,boxwex=0.15,ylab="Solvencia")
 rug(jitter(credit.Datos.Train$Solvencia),side=2)
 abline(h=mean(credit.Datos.Train$Solvencia,na.rm=T),lty=2)
-
-boxplot(credit.Datos.Train$V14,boxwex=0.15,ylab="V14")
-rug(jitter(credit.Datos.Train$V14),side=2)
-abline(h=mean(credit.Datos.Train$V14,na.rm=T),lty=2)
 
 boxplot(credit.Datos.Train$V15,boxwex=0.15,ylab="V15")
 rug(jitter(credit.Datos.Train$V15),side=2)
@@ -166,7 +162,7 @@ winsorizar_con_limites <- function(x, limites) {
   return(x)
 }
 
-columnas_a_winsorizar <- c("AnyosContratado", "Solvencia", "V14", "V15")
+columnas_a_winsorizar <- c("AnyosContratado", "Solvencia", "V15")
 
 credit.Datos.Train.wins <- credit.Datos.Train
 credit.Datos.Test.wins <- credit.Datos.Test
@@ -179,34 +175,39 @@ for (col in columnas_a_winsorizar) {
   credit.Datos.Train.wins[[col]] <- winsorizar_con_limites(credit.Datos.Train.wins[[col]], limites_winsorizacion[[col]])
 }
 
-# Aplicar los mismos límites al conjunto de prueba
+# Aplicar los mismos límites al conjunto de prueba (p. de independencia de conjuntos)
 for (col in columnas_a_winsorizar) {
   credit.Datos.Test.wins[[col]] <- winsorizar_con_limites(credit.Datos.Test.wins[[col]], limites_winsorizacion[[col]])
 }
+```
 
-# En el caso de que NO queramos usar la winsorización solo debemos de comentar líneas
+En el caso de que NO queramos usar la winsorización solo debemos de comentar líneas:
+
+```{r}
 credit.Datos.Train <- credit.Datos.Train.wins
 credit.Datos.Test <- credit.Datos.Test.wins
 ```
 
-Comprobamos que ya no hay valores fuera de rango, excepto en "Deuda" que el porcentaje es muy bajo.
+Comprobamos que ya no hay valores fuera de rango, excepto en "Edad", "Deuda" y "V14" que el porcentaje es muy bajo.
 
 ```{r}
 credit.Datos.continuas <- credit.Datos.Train[, sapply(credit.Datos.Train, is.numeric)]
 outliners <- lapply(credit.Datos.continuas, detectar_outliers)
 
 # Contar los outliers por variable
-sumas_outliners <- sapply(outliners, sum)
+sumas_outliners <- sapply(outliners, function(x) sum(x, na.rm = TRUE))
 sumas_outliners
 ```
 
-Sin embargo, debemos de analizar si en "Deuda" hay errores evidentes que puedan perjudicar el rendimiento del modelo:
+Sin embargo, debemos de analizar si en "Edad", "Deuda" y "V14" hay errores evidentes que puedan perjudicar el rendimiento del modelo:
 
 ```{r}
+summary(credit.Datos.Train$Edad)
 summary(credit.Datos.Train$Deuda)
+summary(credit.Datos.Train$V14)
 ```
 
-No parece que haya valores incorrectos. En caso de que hubiera valores negativos, sería sospechoso, pero no parece que sea así.
+En Deuda y V14 no parece que haya valores incorrectos. Sobre todo en Deuda no parece que haya nada raro, en cuanto a V14 no podemos decir mucho ya que no conocemos (especulado) su significado.
 
 Sin embargo en Edad nos podemos dar cuenta que hay valores erroneos, ya que los menores de edad en Estados Unidos no pueden solicitar créditos. Por tanto, podemos sustituir los valores menos a 18, por 18:
 
