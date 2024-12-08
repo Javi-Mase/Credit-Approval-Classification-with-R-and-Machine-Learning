@@ -805,7 +805,7 @@ nearZeroVar(credit.Datos.gbm.Test)
 
 Todo correcto.
 
-#### 1.8. Entrenamiento: 
+#### 1.8. Entrenamiento:
 
 ```{r}
 credit.Var.Salida.Usada <- "V16"
@@ -954,61 +954,61 @@ El 85.4% es probablemente el accuracy real en el conjunto de prueba, mientras qu
 
 Consideramos que la mejor forma de ver si la teoría se ha cumplido, es ejecutar muchas configuraciones distintas para gbm. En este caso las pruebas las hemos hecho con la versión optimista ya que todavía no sabíamos que hiper-parámetros poner al no tener la configuración seleccionada. Obtenemos:
 
-+------------------------------+--------------+
-| Configuración                | Acierto      |
-+==============================+==============+
-| Dummy                        | ```          |
-|                              | 86.86 %      |
-|                              | ```          |
-+------------------------------+--------------+
-| PCA                          | ```          |
-|                              | 84.67 %      |
-|                              | ```          |
-+------------------------------+--------------+
-| Norm. Range                  | ```          |
-|                              | 86.13 %      |
-|                              | ```          |
-+------------------------------+--------------+
-| Norm. Center-Scale           | ```          |
-|                              | 86.13 %      |
-|                              | ```          |
-+------------------------------+--------------+
-| Dummy+PCA                    | ```          |
-|                              | 86.86 %      |
-|                              | ```          |
-+------------------------------+--------------+
-| Dummy+Norm. Range            | ```          |
-|                              | 86.86 %      |
-|                              | ```          |
-+------------------------------+--------------+
-| Dummy+Norm. Center-Scale     | ```          |
-|                              | 86.86 %      |
-|                              | ```          |
-+------------------------------+--------------+
-| Dummy+PCA+Norm. Range        | ```          |
-|                              | 86.86 %      |
-|                              | ```          |
-+------------------------------+--------------+
-| Dummy+PCA+Norm. Center-Scale | ```          |
-|                              | 86.86 %      |
-|                              | ```          |
-+------------------------------+--------------+
-| PCA+Norm. Range              | ```          |
-|                              | 84.67 %      |
-|                              | ```          |
-+------------------------------+--------------+
-| PCA+Norm. Center-Scale       | ```          |
-|                              | 84.67 %      |
-|                              | ```          |
-+------------------------------+--------------+
-| Dummy+ICA+Norm. Range        | ```          |
-|                              | 85.5 %       |
-|                              | ```          |
-+------------------------------+--------------+
-| ICA                          | ```          |
-|                              | 83.21 %      |
-|                              | ```          |
-+------------------------------+--------------+
++------------------------------+---------------+
+| Configuración                | Acierto       |
++==============================+===============+
+| Dummy                        | ```           |
+|                              | 86.86 %       |
+|                              | ```           |
++------------------------------+---------------+
+| PCA                          | ```           |
+|                              | 84.67 %       |
+|                              | ```           |
++------------------------------+---------------+
+| Norm. Range                  | ```           |
+|                              | 86.13 %       |
+|                              | ```           |
++------------------------------+---------------+
+| Norm. Center-Scale           | ```           |
+|                              | 86.13 %       |
+|                              | ```           |
++------------------------------+---------------+
+| Dummy+PCA                    | ```           |
+|                              | 86.86 %       |
+|                              | ```           |
++------------------------------+---------------+
+| Dummy+Norm. Range            | ```           |
+|                              | 86.86 %       |
+|                              | ```           |
++------------------------------+---------------+
+| Dummy+Norm. Center-Scale     | ```           |
+|                              | 86.86 %       |
+|                              | ```           |
++------------------------------+---------------+
+| Dummy+PCA+Norm. Range        | ```           |
+|                              | 86.86 %       |
+|                              | ```           |
++------------------------------+---------------+
+| Dummy+PCA+Norm. Center-Scale | ```           |
+|                              | 86.86 %       |
+|                              | ```           |
++------------------------------+---------------+
+| PCA+Norm. Range              | ```           |
+|                              | 84.67 %       |
+|                              | ```           |
++------------------------------+---------------+
+| PCA+Norm. Center-Scale       | ```           |
+|                              | 84.67 %       |
+|                              | ```           |
++------------------------------+---------------+
+| Dummy+ICA+Norm. Range        | ```           |
+|                              | 85.5 %        |
+|                              | ```           |
++------------------------------+---------------+
+| ICA                          | ```           |
+|                              | 83.21 %       |
+|                              | ```           |
++------------------------------+---------------+
 
 : **Nota:** En esta tabla NO están todas las combinaciones posibles, ya que sería demasiado largo, hemos pensado en las que mejor casarían, evitado usar preprocesados similares juntos (por ejemplo las dos normalizaciones), y hemos evitado muchas combinaciones aplicando el razonamiento.
 
@@ -1020,7 +1020,7 @@ Según hemos podido encontrar en esta página web: <https://www.619.io/blog/2017
 
 "It is a bit disappointing to observe no improvement after reducing the number of features using PCA; and even worse, we get some noticeable degradation of the baseline result. Sometimes things like that happen… A more thorough feature tinkering might help here to reduce the number of features and achieve better performance!"
 
-#### 1.12. Eliminar variables no importantes: 
+#### 1.12. Eliminar variables no importantes:
 
 Podemos probar a eliminar las columnas que no se utilizan. Primero debemos de comprobar cuantas se utlizan:
 
@@ -1082,3 +1082,749 @@ GBM es un modelo que automáticamente reduce la importancia de variables irrelev
 #### 1.13. Conclusión:
 
 Terminamos este entrenamiento habiendo probado muchísimas configuraciones de preprocesado, eligiendo la más prometedora, y buscando los parámetros idóneos que debería de tener nuestro modelo para obtener buenas predicciones. Siendo nuestro porcentaje de acierto experimental: 85.4%.
+
+### 2. SVM
+
+En primer lugar vamos a tratar de buscar información a cerca de las características del modelo. Gran parte de la informacion obtenida es de la siguiente pagina.\
+[https://medium.com/\@vdeshpande551/understanding-the-inner-workings-of-svm-from-data-preprocessing-to-model-deployment-cdc9d72a2d34](https://medium.com/@vdeshpande551/understanding-the-inner-workings-of-svm-from-data-preprocessing-to-model-deployment-cdc9d72a2d34){.uri}\
+El modelo SVM (support vector machines) funciona buscando el hiperplano óptimo que maximiza la separación entre las clases en el espacio de características. Es por esto que SVM es sensible a la escala de los datos porque utiliza medidas de distancias es por esto que vamos a probar varios modelos con diferentes escalados. Tambien hay que tener en cuenta que SVM no trabaja con variables categoricas por lo que tendremos que hacer dummys, para ello supondremos que todas son tipo ranked. Otro aspecto necesario para que nuestro modelo funcione es eliminar las variables con poca correlación. Por último realizaremos otras pruebas como reducir la dimensionalidad con diferentes metodos, tratar los datos desvalanceados y probaremos a eliminar ciertas variables que no tengan importancia en el modelo final.
+
+```{r}
+credit.Datos.Train.Svm <- credit.Datos.Train
+credit.Datos.Test.Svm <- credit.Datos.Test
+```
+
+#### 2.1 Transformacion de distribuciones asimetricas
+
+En primer lugar vamos a comenzar tratando las distribuciones asimetricas. Para ello vamos a usar **BoxCox** cuando los datos sean positivos y continuos y las distribuciones esten sesgadas a la derecha. Yeo-Johnson podemos usarla cuando los datos sean positivos, negativos o ceros y ademas funciona bien con asimetrias de ambos tipos. Por último expoTrans la emplearemos cuando los datos tengan una asimetria extremadamente sesgada.
+
+```{r}
+credit.Datos.Train.Asimetricas <- credit.Datos.Train.Svm
+credit.Datos.Test.Asimetricas <- credit.Datos.Test.Svm
+```
+
+```{r}
+#Edad
+Var<-"Edad"
+hist(credit.Datos.Train$Edad, 
+     main = c("Histograma de ",Var),  # Título del gráfico
+     xlab = Var,                # Etiqueta del eje X
+     col = "blue",                 # Color de las barras
+     border = "black",             # Color del borde de las barras
+     breaks = 20)
+preProcValues <- preProcess(credit.Datos.Train.Asimetricas[Var], method = "BoxCox")
+credit.Datos.Train.Asimetricas[Var] <- predict(preProcValues, credit.Datos.Train.Asimetricas[Var])
+credit.Datos.Test.Asimetricas[Var] <- predict(preProcValues, credit.Datos.Test.Asimetricas[Var])
+
+# Histograma para credit.Datos.Train.Asimetricas$Edad
+hist(credit.Datos.Train.Asimetricas$Edad, 
+     main = paste("Histograma de", Var, "en credit.Datos.Train.Asimetricas"), 
+     xlab = Var, col = "green", border = "black", breaks = 20)
+
+```
+
+```{r}
+#Deuda
+Var<-"Deuda"
+hist(credit.Datos.Train$Deuda, 
+     main = c("Histograma de ",Var),  # Título del gráfico
+     xlab = Var,                # Etiqueta del eje X
+     col = "blue",                 # Color de las barras
+     border = "black",             # Color del borde de las barras
+     breaks = 20)
+preProcValues <- preProcess(credit.Datos.Train.Asimetricas[Var], method = "YeoJohnson")
+credit.Datos.Train.Asimetricas[Var] <- predict(preProcValues, credit.Datos.Train.Asimetricas[Var])
+credit.Datos.Test.Asimetricas[Var] <- predict(preProcValues, credit.Datos.Test.Asimetricas[Var])
+
+hist(credit.Datos.Train.Asimetricas$Deuda, 
+     main = paste("Histograma de", Var, "en credit.Datos.Train.Asimetricas"), 
+     xlab = Var, col = "green", border = "black", breaks = 10)
+```
+
+```{r}
+#AnyosContratado
+Var<-"AnyosContratado"
+hist(credit.Datos.Train$AnyosContratado, 
+     main = c("Histograma de ",Var),  # Título del gráfico
+     xlab = Var,                # Etiqueta del eje X
+     col = "blue",                 # Color de las barras
+     border = "black",             # Color del borde de las barras
+     breaks = 20)
+preProcValues <- preProcess(credit.Datos.Train.Asimetricas[Var], method = "YeoJohnson")
+credit.Datos.Train.Asimetricas[Var] <- predict(preProcValues, credit.Datos.Train.Asimetricas[Var])
+credit.Datos.Test.Asimetricas[Var] <- predict(preProcValues, credit.Datos.Test.Asimetricas[Var])
+
+hist(credit.Datos.Train.Asimetricas$AnyosContratado, 
+     main = paste("Histograma de", Var, "en credit.Datos.Train.Asimetricas"), 
+     xlab = Var, col = "green", border = "black", breaks = 10)
+```
+
+```{r}
+#Solvencia
+Var<-"Solvencia"
+hist(credit.Datos.Train$Solvencia, 
+     main = c("Histograma de ",Var),  # Título del gráfico
+     xlab = Var,                # Etiqueta del eje X
+     col = "blue",                 # Color de las barras
+     border = "black",             # Color del borde de las barras
+     breaks = 20)
+preProcValues <- preProcess(credit.Datos.Train.Asimetricas[Var], method = "BoxCox")
+credit.Datos.Train.Asimetricas[Var] <- predict(preProcValues, credit.Datos.Train.Asimetricas[Var])
+credit.Datos.Test.Asimetricas[Var] <- predict(preProcValues, credit.Datos.Test.Asimetricas[Var])
+
+hist(credit.Datos.Train.Asimetricas$Solvencia, 
+     main = paste("Histograma de", Var, "en credit.Datos.Train.Asimetricas"), 
+     xlab = Var, col = "green", border = "black", breaks = 10)
+```
+
+```{r}
+#v14
+Var<-"V14"
+hist(credit.Datos.Train$V14, 
+     main = c("Histograma de ",Var),  # Título del gráfico
+     xlab = Var,                # Etiqueta del eje X
+     col = "blue",                 # Color de las barras
+     border = "black",             # Color del borde de las barras
+     breaks = 20)
+preProcValues <- preProcess(credit.Datos.Train.Asimetricas[Var], method = "YeoJohnson")
+credit.Datos.Train.Asimetricas[Var] <- predict(preProcValues, credit.Datos.Train.Asimetricas[Var])
+credit.Datos.Test.Asimetricas[Var] <- predict(preProcValues, credit.Datos.Test.Asimetricas[Var])
+
+hist(credit.Datos.Train.Asimetricas$V14, 
+     main = paste("Histograma de", Var, "en credit.Datos.Train.Asimetricas"), 
+     xlab = Var, col = "green", border = "black", breaks = 20)
+```
+
+```{r}
+#v15
+Var<-"V15"
+hist(credit.Datos.Train$V15, 
+     main = c("Histograma de ",Var),  # Título del gráfico
+     xlab = Var,                # Etiqueta del eje X
+     col = "blue",                 # Color de las barras
+     border = "black",             # Color del borde de las barras
+     breaks = 20)
+preProcValuesBC <- preProcess(credit.Datos.Train.Asimetricas[Var], method = "YeoJohnson")
+credit.Datos.Train.Asimetricas[Var] <- predict(preProcValuesBC, credit.Datos.Train.Asimetricas[Var])
+credit.Datos.Test.Asimetricas[Var] <- predict(preProcValuesBC, credit.Datos.Test.Asimetricas[Var])
+
+hist(credit.Datos.Train.Asimetricas$V15, 
+     main = paste("Histograma de", Var, "en credit.Datos.Train.Asimetricas"), 
+     xlab = Var, col = "green", border = "black", breaks = 20)
+```
+
+Si queremos que no aplique comentar lo siguiente:
+
+```{r}
+#credit.Datos.Train.Svm <- credit.Datos.Train.Asimetricas
+#credti.datos.Test.Svm <- credit.Datos.Test.Asimetricas
+```
+
+#### 2.2 Normalización
+
+```{r}
+credit.Var.Salida.Usada <- c("V16")
+credit.Var.Entrada.Usadas <- setdiff(names(credit.Datos.Train.Svm),credit.Var.Salida.Usada)
+```
+
+##### Usando Center-Scale
+
+```{r}
+credit.preProc.CS.Mod<-preProcess(credit.Datos.Train.Svm[credit.Var.Entrada.Usadas],
+                                  method=c("center","scale"))
+credit.Datos.Train.CS <- predict(credit.preProc.CS.Mod,credit.Datos.Train.Svm)
+credit.Datos.Test.CS <- predict(credit.preProc.CS.Mod,credit.Datos.Test.Svm)
+```
+
+```{r}
+#credit.Datos.Train.Svm <- credit.Datos.Train.CS
+#credit.Datos.Test.Svm <- credit.Datos.Test.CS
+```
+
+##### Usando Range
+
+```{r}
+credit.preProc.CS.Mod<-preProcess(credit.Datos.Train.Svm[credit.Var.Entrada.Usadas],
+                                  method=c("range"))
+credit.Datos.Train.Rg <- predict(credit.preProc.CS.Mod,credit.Datos.Train.Svm)
+credit.Datos.Test.Rg <- predict(credit.preProc.CS.Mod,credit.Datos.Test.Svm) 
+```
+
+```{r}
+#credit.Datos.Train.Svm <- credit.Datos.Train.Rg
+#credit.Datos.Test.Svm <- credit.Datos.Test.Rg
+```
+
+#### 2.3 Dummy
+
+Esta transformación de los datos debera emplearse siempre para el correcto funcionamiento del modelo.
+
+```{r}
+# Definir la variable de salida y las variables de entrada
+credit.Var.Salida.Usada <- "V16"
+credit.Vars.Entrada.Usadas <- setdiff(names(credit.Datos.Train), credit.Var.Salida.Usada)
+```
+
+```{r}
+# Convertir la variable de salida a factor (para clasificación)
+credit.Datos.Train.Svm[[credit.Var.Salida.Usada]] <- as.factor(credit.Datos.Train.Svm[[credit.Var.Salida.Usada]])
+credit.Datos.Test.Svm[[credit.Var.Salida.Usada]] <- as.factor(credit.Datos.Test.Svm[[credit.Var.Salida.Usada]])
+
+# Crear el modelo dummy solo para las variables de entrada
+dummy_model <- dummyVars(~ ., data = credit.Datos.Train.Svm[, credit.Vars.Entrada.Usadas], fullRank = TRUE)
+
+# Transformar las variables de entrada a dummies (sin tocar la salida)
+credit.Datos.Train.Dummies <- data.frame(predict(dummy_model, credit.Datos.Train.Svm[, credit.Vars.Entrada.Usadas]))
+credit.Datos.Test.Dummies <- data.frame(predict(dummy_model, credit.Datos.Test.Svm[, credit.Vars.Entrada.Usadas]))
+
+# Añadir la variable de salida de nuevo a los conjuntos transformados
+credit.Datos.Train.Dummies[[credit.Var.Salida.Usada]] <- credit.Datos.Train.Svm[[credit.Var.Salida.Usada]]
+credit.Datos.Test.Dummies[[credit.Var.Salida.Usada]] <- credit.Datos.Test.Svm[[credit.Var.Salida.Usada]]
+
+credit.Datos.Train.Svm <- credit.Datos.Train.Dummies
+credit.Datos.Test.Svm <- credit.Datos.Test.Dummies
+
+```
+
+#### 2.4 Eliminar variables con poca varianza
+
+Este paso también debe realizarse en todos los prepocesados que apliquemos.
+
+```{r}
+nzv.Train <- nearZeroVar(credit.Datos.Train.Svm)
+nzv.Train
+credit.Datos.Train.Svm <- credit.Datos.Train.Svm[, -nzv.Train]
+credit.Datos.Test.Svm <- credit.Datos.Test.Svm[, names(credit.Datos.Train.Svm)]
+```
+
+#### 2.5 Transformaciones de relaciones entre variables
+
+##### PCA
+
+```{r}
+credit.PreProc.Pca.Mod <- preProcess(credit.Datos.Train.Svm, method = "pca", thresh = 0.95)  # 95% de la varianza explicada
+credit.PreProc.Pca.Mod
+credit.Datos.Train.Pca <- predict(credit.PreProc.Pca.Mod, credit.Datos.Train.Svm)
+credit.Datos.Test.Pca <- predict(credit.PreProc.Pca.Mod, credit.Datos.Test.Svm)
+```
+
+```{r}
+credit.Datos.Train.Svm <- credit.Datos.Train.Pca
+credit.Datos.Test.Svm <- credit.Datos.Test.Pca
+```
+
+##### ICA
+
+```{r}
+credit.PreProc.Ica.Mod <- preProcess(credit.Datos.Train.Svm, method = "ica", n.comp = 10)  # 10 componentes independientes
+credit.PreProc.Ica.Mod
+credit.Datos.Train.Ica <- predict(credit.PreProc.Ica.Mod, credit.Datos.Train.Svm)
+credit.Datos.Test.Ica <- predict(credit.PreProc.Ica.Mod, credit.Datos.Test.Svm)
+```
+
+```{r}
+#credit.Datos.Train.Svm <- credit.Datos.Train.Ica
+#credit.Datos.Test.Svm <- credit.Datos.Test.Ica
+```
+
+#### 2.6 Entrenamiento
+
+```{r}
+set.seed(1234)
+credit.modelo.svm <- train(
+  V16 ~ .,
+  data = credit.Datos.Train.Svm,                    # Datos de entrenamiento
+  method = "svmRadial",                             
+  trControl = trainControl(method = "cv", number = 10),   # Validación cruzada d
+  tuneLength = 20                                         # Probar diferentes valores de parámetros
+)
+```
+
+El error de entrenamiento del modelo
+
+```{r}
+train_pred <- predict(credit.modelo.svm, credit.Datos.Train.Svm)
+conf_matrix <- confusionMatrix(train_pred, credit.Datos.Train.Svm$V16)
+accuracy <- conf_matrix$overall['Accuracy']
+accuracy
+```
+
+El error final del modelo sería:
+
+```{r}
+#Mostrar porcentaje final
+# Realizar predicciones en el conjunto de prueba
+predicciones_test <- predict(credit.modelo.svm, credit.Datos.Test.Svm)
+
+# Generar la matriz de confusión
+matriz_confusion <- confusionMatrix(predicciones_test, credit.Datos.Test.Svm[[credit.Var.Salida.Usada]])
+
+# Extraer el porcentaje de acierto
+porcentaje_acierto <- matriz_confusion$overall["Accuracy"] * 100
+
+# Mostrar el porcentaje de acierto
+print(paste("Porcentaje de acierto:", round(porcentaje_acierto, 2), "%"))
+```
+
+#### 2.7 Hiper-parámetros
+
+Tras probar 20 combinaciones de hiper-parametros vamos a cuales han sido los que finalmente se han elegido para el modelo final.
+
+```{r}
+modelLookup(("svmRadial"))
+```
+
+El parametro C es el parametro de penalización, cuanto más altos sean los valores que este tome más estricto será, dando prioridad a clasificar correctamente todos los puntos. Con valores mas pequeños permite un margen más amplio, tolerando así más errores de clasificación.
+
+El parametro sigma, al igual que C cuanto mayor es su valor más cercanos serán los puntos considerados frontera de decisión y viceversa.
+
+<https://stackabuse.com/understanding-svm-hyperparameters/>
+
+```{r}
+credit.modelo.svm$bestTune
+```
+
+#### 2.8 **¿Con qué configuración hemos hecho los entrenamientos?**
+
+Como ya hemos dicho para que el modelo SVM funcione es necesario haber transformado las variables categoricas y haber eliminado las variables de poca varianza, es por esto q a esa configuracion la llamaremos 'Básica'.
+
++-----------------------------------+---------------+
+| Configuración                     | Acierto       |
++===================================+===============+
+| Básica                            | ```           |
+|                                   | 85.4 %        |
+|                                   | ```           |
++-----------------------------------+---------------+
+| Básica + Asimetricas              | ```           |
+|                                   | 44.53 %       |
+|                                   | ```           |
++-----------------------------------+---------------+
+| Básica + Norm. Center-Scale       | ```           |
+|                                   | 85.4 %        |
+|                                   | ```           |
++-----------------------------------+---------------+
+| Básica + Norm. Range              | ```           |
+|                                   | 85.4 %        |
+|                                   | ```           |
++-----------------------------------+---------------+
+| Básica + PCA                      | ```           |
+|                                   | 86.13 %       |
+|                                   | ```           |
++-----------------------------------+---------------+
+| Básica + ICA                      | ```           |
+|                                   | 82.48 %       |
+|                                   | ```           |
++-----------------------------------+---------------+
+| Básica + Norm. Center-Scale + PCA | ```           |
+|                                   | 86.13 %       |
+|                                   | ```           |
++-----------------------------------+---------------+
+
+Tras las ejecuciones consideramos que para los datos para el modelo SVM haremos dummys, eliminaremos las variables con poca varianza y aplicaremos PCA.
+
+#### 2.9 Submuestreo con clases desvalanceadas
+
+Para ver si nuestro modelo mejora vamos a tratar las clases desvalanceadas en el conjunto de los datos de entrenamiento.
+
+```{r}
+credit.Var.Salida.Usada <- c("V16")
+credit.Vars.Entrada.Usadas <- setdiff(names(credit.Datos.Train.Svm),credit.Var.Salida.Usada)
+```
+
+##### down-sampling:
+
+Consiste en reducir el n´umero de ejemplos de las clases m´as frecuentes para igualar la clase menos frecuente.
+
+```{r}
+set.seed(12345)
+credit.Datos.Train.svm.downsmpld<-downSample(x=credit.Datos.Train.Svm[credit.Vars.Entrada.Usadas],
+                                       y=credit.Datos.Train.Svm[[credit.Var.Salida.Usada]],
+                                       yname=credit.Var.Salida.Usada)
+credit.Datos.Test.svm.downsmpld <- credit.Datos.Test.Svm
+```
+
+##### up-sampling:
+
+En este caso hace lo contrario, remuestrea (con reemplazamiento) la clase minoritaria para igualarla a la mayoritaria (repite varios datos).
+
+```{r}
+set.seed(1234)
+credit.Datos.Train.svm.upsmpld<-upSample(x=credit.Datos.Train.Svm[credit.Vars.Entrada.Usadas],
+                                   y=credit.Datos.Train.Svm[[credit.Var.Salida.Usada]],
+                                   yname=credit.Var.Salida.Usada)
+credit.Datos.Test.svm.upsmpld<- credit.Datos.Test.Svm
+```
+
+Creamos y probamos un modelo para cada una de estas configuraciones:
+
+```{r}
+set.seed(1234)
+credit.modelo.svm.downsmpld <- train(
+  V16 ~ .,  # Variable de salida ~ Variables de entrada
+  data = credit.Datos.Train.svm.downsmpld,                                    # Datos de entrenamiento
+  method = "svmRadial",                                          # Especificamos el método SVM con kernel radial
+  trControl = trainControl(method = "cv", number = 10),           # Validación cruzada de 5 pliegues
+  tuneLength = 10                                                # Probar diferentes valores de parámetros
+)
+#Mostrar porcentaje final
+# Realizar predicciones en el conjunto de prueba
+predicciones_test <- predict(credit.modelo.svm.downsmpld, credit.Datos.Test.svm.downsmpld)
+
+# Generar la matriz de confusión
+matriz_confusion <- confusionMatrix(predicciones_test, credit.Datos.Test.svm.downsmpld[[credit.Var.Salida.Usada]])
+
+# Extraer el porcentaje de acierto
+porcentaje_acierto <- matriz_confusion$overall["Accuracy"] * 100
+
+# Mostrar el porcentaje de acierto
+print(paste("Porcentaje de acierto:", round(porcentaje_acierto, 2), "%"))
+```
+
+```{r}
+set.seed(1234)
+credit.modelo.svm.upsmpld <- train(
+  V16 ~ .,  # Variable de salida ~ Variables de entrada
+  data = credit.Datos.Train.svm.upsmpld,                                    # Datos de entrenamiento
+  method = "svmRadial",                                          # Especificamos el método SVM con kernel radial
+  trControl = trainControl(method = "cv", number = 10),           # Validación cruzada de 5 pliegues
+  tuneLength = 10                                                # Probar diferentes valores de parámetros
+)
+#Mostrar porcentaje final
+# Realizar predicciones en el conjunto de prueba
+predicciones_test <- predict(credit.modelo.svm.upsmpld, credit.Datos.Test.svm.upsmpld)
+
+# Generar la matriz de confusión
+matriz_confusion <- confusionMatrix(predicciones_test, credit.Datos.Test.svm.upsmpld[[credit.Var.Salida.Usada]])
+
+# Extraer el porcentaje de acierto
+porcentaje_acierto <- matriz_confusion$overall["Accuracy"] * 100
+
+# Mostrar el porcentaje de acierto
+print(paste("Porcentaje de acierto:", round(porcentaje_acierto, 2), "%"))
+```
+
+#### 2.10 Eliminación de variables
+
+```{r}
+#Ver importancia de las variables de entrada
+#Metodo -> varImp()
+varImp(credit.modelo.svm)
+#Ver seleccion de variables del modelo 
+#Metodo -> predictors(modelo$finalModel)
+predictors(credit.modelo.svm$finalModel)
+```
+
+Como vemos la variable PC5 no tiene importancia a la hora de realizar la clasificación. Vamos a probar a eliminarla para ver si nuestro modelo mejora.
+
+```{r}
+credit.Datos.Train.svm.Reduc <- credit.Datos.Train.Svm
+credit.Datos.Test.svm.Reduc <- credit.Datos.Test.Svm
+credit.Datos.Train.svm.Reduc$PC5 <- NULL
+credit.Datos.Test.svm.Reduc$PC5 <- NULL
+```
+
+```{r}
+set.seed(1234)
+credit.modelo.svm.Reduc <- train(
+  V16 ~ .,  # Variable de salida ~ Variables de entrada
+  data = credit.Datos.Train.svm.Reduc,                                    # Datos de entrenamiento
+  method = "svmRadial",                                          # Especificamos el método SVM con kernel radial
+  trControl = trainControl(method = "cv", number = 10),           # Validación cruzada de 5 pliegues
+  tuneLength = 10                                                # Probar diferentes valores de parámetros
+)
+
+predicciones_test <- predict(credit.modelo.svm.Reduc, credit.Datos.Test.svm.Reduc)
+
+# Generar la matriz de confusión
+matriz_confusion <- confusionMatrix(predicciones_test, credit.Datos.Test.svm.Reduc[[credit.Var.Salida.Usada]])
+
+# Extraer el porcentaje de acierto
+porcentaje_acierto <- matriz_confusion$overall["Accuracy"] * 100
+
+# Mostrar el porcentaje de acierto
+print(paste("Porcentaje de acierto:", round(porcentaje_acierto, 2), "%"))
+```
+
+La eliminacion de esta variable, a pesar de que no tiene imporatancia en el modelo final enternado no mejora el rendiminto.
+
+#### 2.11 Conclusión
+
+Para la configuración de nuestro modelo SVM, el mejor resultado lo obtienen los datos tras haber hecho Dummys, eliminado las variables con poca varianza y habiendo aplicado PCA. Tras esto eliminamos PC5
+
+El modelo final sería:
+
+```{r}
+print(credit.modelo.svm.Reduc)
+```
+
+### 3. KNN
+
+K-Nearest Neighbors es un algoritmo que clasifica o predice en función de los k vecinos mas cercanos. En nuestro caso, nos interesa la clasificación. Debido a como funciona KNN será fundamental la normalización de los datos asi como transformar las variables categoricas en dummys. No nos centraremos tanto en la reducción de los datos y por último realizaremos pruebas eliminando variables poco importantes asi como tratar las clases desvalanceadas o los sesgos.
+
+<https://www.datacamp.com/tutorial/k-nearest-neighbors-knn-classification-with-r-tutorial>
+
+<https://www.datacamp.com/tutorial/preprocessing-in-data-science-part-1-centering-scaling-and-knn>
+
+```{r}
+credit.Datos.Train.Knn <- credit.Datos.Train
+credit.Datos.Test.Knn <- credit.Datos.Test
+```
+
+```{r}
+credit.Var.Salida.Usada <- c("V16")
+credit.Var.Entrada.Usadas <- setdiff(names(credit.Datos.Train.Knn),credit.Var.Salida.Usada)
+```
+
+#### 3.1 Normalización
+
+##### Center-Scale
+
+```{r}
+credit.preProc.CS.Mod<-preProcess(credit.Datos.Train.Knn[credit.Var.Entrada.Usadas],
+                                  method=c("center","scale"))
+credit.Datos.Train.CS <- predict(credit.preProc.CS.Mod,credit.Datos.Train.Knn)
+credit.Datos.Test.CS <- predict(credit.preProc.CS.Mod,credit.Datos.Test.Knn)
+```
+
+```{r}
+credit.Datos.Train.Knn <- credit.Datos.Train.CS
+credit.Datos.Test.Knn <- credit.Datos.Test.CS
+```
+
+##### Range
+
+```{r}
+credit.preProc.CS.Mod<-preProcess(credit.Datos.Train.Knn[credit.Var.Entrada.Usadas],
+                                  method=c("range"))
+credit.Datos.Train.Rg <- predict(credit.preProc.CS.Mod,credit.Datos.Train.Knn)
+credit.Datos.Test.Rg <- predict(credit.preProc.CS.Mod,credit.Datos.Test.Knn) 
+```
+
+```{r}
+#credit.Datos.Train.Knn <- credit.Datos.Train.Rg
+#credit.Datos.Test.Knn <- credit.Datos.Test.Rg
+```
+
+#### 3.2 Dummys
+
+```{r}
+# Definir la variable de salida y las variables de entrada
+credit.Var.Salida.Usada <- "V16"
+credit.Vars.Entrada.Usadas <- setdiff(names(credit.Datos.Train.Knn), credit.Var.Salida.Usada)
+
+# Convertir la variable de salida a factor (para clasificación)
+credit.Datos.Train.Knn[[credit.Var.Salida.Usada]] <- as.factor(credit.Datos.Train.Knn[[credit.Var.Salida.Usada]])
+credit.Datos.Test.Knn[[credit.Var.Salida.Usada]] <- as.factor(credit.Datos.Test.Knn[[credit.Var.Salida.Usada]])
+
+# Crear el modelo dummy solo para las variables de entrada
+dummy_model <- dummyVars(~ ., data = credit.Datos.Train.Knn[, credit.Vars.Entrada.Usadas], fullRank = TRUE)
+
+# Transformar las variables de entrada a dummies (sin tocar la salida)
+credit.Datos.Train.Dummies <- data.frame(predict(dummy_model, credit.Datos.Train.Knn[, credit.Vars.Entrada.Usadas]))
+credit.Datos.Test.Dummies <- data.frame(predict(dummy_model, credit.Datos.Test.Knn[, credit.Vars.Entrada.Usadas]))
+
+# Añadir la variable de salida de nuevo a los conjuntos transformados
+credit.Datos.Train.Dummies[[credit.Var.Salida.Usada]] <- credit.Datos.Train.Knn[[credit.Var.Salida.Usada]]
+credit.Datos.Test.Dummies[[credit.Var.Salida.Usada]] <- credit.Datos.Test.Knn[[credit.Var.Salida.Usada]]
+
+credit.Datos.Train.Knn <- credit.Datos.Train.Dummies
+credit.Datos.Test.Knn <- credit.Datos.Test.Dummies
+```
+
+#### 3.3 Eliminar variables con poca varianza
+
+```{r}
+nzv.Train <- nearZeroVar(credit.Datos.Train.Knn)
+nzv.Train
+credit.Datos.Train.Vari <- credit.Datos.Train.Knn[, -nzv.Train]
+credit.Datos.Test.Vari <- credit.Datos.Test.Knn[, names(credit.Datos.Train.Knn)]
+```
+
+```{r}
+#credit.Datos.Train.Knn <- credit.Datos.Train.Vari
+#credit.Datos.Test.Knn <- credit.Datos.Test.Vari
+```
+
+#### 3.4 Entrenamiento
+
+```{r}
+# Configurar el modelo KNN
+set.seed(1234)
+# Entrenamiento del modelo k-NN
+credit.modelo.knn <- train(V16 ~ .,  # Usamos "Class" como variable de salida
+                           data = credit.Datos.Train.Knn,  # Datos de entrenamiento
+                           method = "knn",  # Especificamos k-NN
+                           trControl = trainControl(method = "cv", number = 10),  # Validación cruzada de 10 pliegues
+                           tuneLength = 20)
+
+```
+
+El error de entrenamiento del modelo
+
+```{r}
+train_pred <- predict(credit.modelo.knn, credit.Datos.Train.Knn)
+conf_matrix <- confusionMatrix(train_pred, credit.Datos.Train.Knn$V16)
+accuracy <- conf_matrix$overall['Accuracy']
+accuracy
+```
+
+El error final del modelo sería:
+
+```{r}
+#Mostrar porcentaje final
+# Realizar predicciones en el conjunto de prueba
+predicciones_test <- predict(credit.modelo.knn, credit.Datos.Test.Knn)
+
+# Generar la matriz de confusión
+matriz_confusion <- confusionMatrix(predicciones_test, credit.Datos.Test.Knn[[credit.Var.Salida.Usada]])
+
+# Extraer el porcentaje de acierto
+porcentaje_acierto <- matriz_confusion$overall["Accuracy"] * 100
+
+# Mostrar el porcentaje de acierto
+print(paste("Porcentaje de acierto:", round(porcentaje_acierto, 2), "%"))
+```
+
+#### 3.5 Hiper-Parametros
+
+Tras probar 20 combinaciones de hiper-parametros vamos a cuales han sido los que finalmente se han elegido para el modelo final.
+
+```{r}
+modelLookup(("knn"))
+```
+
+```{r}
+credit.modelo.knn$bestTune
+```
+
+#### 3.6 **¿Con qué configuración hemos hecho los entrenamientos?**
+
++------------------------------------------+---------------+
+| Configuración                            | Acierto       |
++==========================================+===============+
+| Dummy                                    | ```           |
+|                                          | 71.53 %       |
+|                                          | ```           |
++------------------------------------------+---------------+
+| Dummy + Asimetricas                      | ```           |
+|                                          | 82.48 %       |
+|                                          | ```           |
++------------------------------------------+---------------+
+| Dummy + Norm. Center-Scale               | ```           |
+|                                          | 86.86 %       |
+|                                          | ```           |
++------------------------------------------+---------------+
+| Dummy + Norm. Range                      | ```           |
+|                                          | 87.59 %       |
+|                                          | ```           |
++------------------------------------------+---------------+
+| Dummy + Norm. Range + Norm. Center-Scale | ```           |
+|                                          | 87.59 %       |
+|                                          | ```           |
++------------------------------------------+---------------+
+| Dummy + Eliminar poca varianza           | ```           |
+|                                          | 71.53 %       |
+|                                          | ```           |
++------------------------------------------+---------------+
+| Dummy+ Norm. Center-Scale + Asimetricas  | ```           |
+|                                          | 84.67 %       |
+|                                          | ```           |
++------------------------------------------+---------------+
+| Dummy+ Norm. Center-Scale + PCA          | ```           |
+|                                          | 80.29 %       |
+|                                          | ```           |
++------------------------------------------+---------------+
+
+#### 3.7 Submuestreo con clases desvalanceadas
+
+Para ver si nuestro modelo mejora vamos a tratar las clases desvalanceadas en el conjunto de los datos de entrenamiento.
+
+```{r}
+credit.Var.Salida.Usada <- c("V16")
+credit.Vars.Entrada.Usadas <- setdiff(names(credit.Datos.Train.Knn),credit.Var.Salida.Usada)
+```
+
+##### down-sampling:
+
+Consiste en reducir el n´umero de ejemplos de las clases m´as frecuentes para igualar la clase menos frecuente.
+
+```{r}
+set.seed(12345)
+credit.Datos.Train.knn.downsmpld<-downSample(x=credit.Datos.Train.Knn[credit.Vars.Entrada.Usadas],
+                                       y=credit.Datos.Train.Knn[[credit.Var.Salida.Usada]],
+                                       yname=credit.Var.Salida.Usada)
+credit.Datos.Test.knn.downsmpld <- credit.Datos.Test.Knn
+```
+
+##### up-sampling:
+
+En este caso hace lo contrario, remuestrea (con reemplazamiento) la clase minoritaria para igualarla a la mayoritaria (repite varios datos).
+
+```{r}
+set.seed(1234)
+credit.Datos.Train.knn.upsmpld<-upSample(x=credit.Datos.Train.Knn[credit.Vars.Entrada.Usadas],
+                                   y=credit.Datos.Train.Knn[[credit.Var.Salida.Usada]],
+                                   yname=credit.Var.Salida.Usada)
+credit.Datos.Test.knn.upsmpld<- credit.Datos.Test.Knn
+```
+
+Creamos y probamos un modelo para cada una de estas configuraciones:
+
+```{r}
+set.seed(1234)
+credit.modelo.knn.downsmpld <- train(
+  V16 ~ .,  # Variable de salida ~ Variables de entrada
+  data = credit.Datos.Train.knn.downsmpld,                                    # Datos de entrenamiento
+  method = "svmRadial",                                          # Especificamos el método SVM con kernel radial
+  trControl = trainControl(method = "cv", number = 10),           # Validación cruzada de 5 pliegues
+  tuneLength = 10                                                # Probar diferentes valores de parámetros
+)
+#Mostrar porcentaje final
+# Realizar predicciones en el conjunto de prueba
+predicciones_test <- predict(credit.modelo.knn.downsmpld, credit.Datos.Test.knn.downsmpld)
+
+# Generar la matriz de confusión
+matriz_confusion <- confusionMatrix(predicciones_test, credit.Datos.Test.knn.downsmpld[[credit.Var.Salida.Usada]])
+
+# Extraer el porcentaje de acierto
+porcentaje_acierto <- matriz_confusion$overall["Accuracy"] * 100
+
+# Mostrar el porcentaje de acierto
+print(paste("Porcentaje de acierto:", round(porcentaje_acierto, 2), "%"))
+```
+
+```{r}
+set.seed(1234)
+credit.modelo.knn.upsmpld <- train(
+  V16 ~ .,  # Variable de salida ~ Variables de entrada
+  data = credit.Datos.Train.knn.upsmpld,                                    # Datos de entrenamiento
+  method = "svmRadial",                                          # Especificamos el método SVM con kernel radial
+  trControl = trainControl(method = "cv", number = 10),           # Validación cruzada de 5 pliegues
+  tuneLength = 10                                                # Probar diferentes valores de parámetros
+)
+#Mostrar porcentaje final
+# Realizar predicciones en el conjunto de prueba
+predicciones_test <- predict(credit.modelo.knn.upsmpld, credit.Datos.Test.knn.upsmpld)
+
+# Generar la matriz de confusión
+matriz_confusion <- confusionMatrix(predicciones_test, credit.Datos.Test.knn.upsmpld[[credit.Var.Salida.Usada]])
+
+# Extraer el porcentaje de acierto
+porcentaje_acierto <- matriz_confusion$overall["Accuracy"] * 100
+
+# Mostrar el porcentaje de acierto
+print(paste("Porcentaje de acierto:", round(porcentaje_acierto, 2), "%"))
+```
+
+#### 3.8 Eliminación de variables
+
+```{r}
+#Ver importancia de las variables de entrada
+#Metodo -> varImp()
+varImp(credit.modelo.knn)
+#Ver seleccion de variables del modelo 
+#Metodo -> predictors(modelo$finalModel)
+predictors(credit.modelo.knn$finalModel)
+```
+
+#### 3.9 Conclusión
