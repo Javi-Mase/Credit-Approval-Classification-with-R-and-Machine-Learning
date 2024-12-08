@@ -1,6 +1,8 @@
 ---
 title: "normalizar"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 date: "2024-11-20"
 ---
 
@@ -15,7 +17,7 @@ This is an R Markdown document. Markdown is a simple formatting syntax for autho
 When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
 
 ```{r cars}
-setwd("/home/manu/FIUM/TERCERO/PrimerCuatri/AC/Proyecto/PracticasAC")
+#setwd("/home/manu/FIUM/TERCERO/PrimerCuatri/AC/Proyecto/PracticasAC")
 
 if(!require("caret")) {
   install.packages("caret", dependencies = c("Depends", "Suggests"))
@@ -88,7 +90,7 @@ colnames(combined_credit)[colnames(combined_credit) == "V13"] <- "composicionPob
 
 [**Tratamiento de valores fuera de rango:**]{.underline}
 
-Para ello, vamos a diseñar una función que detecte outliners. Como hemos aprendido a hacerlo es con la siguiente fórmula: si valor **∈** [Q1 - 1.5 \* RI, Q3 + 1.5 \* RI] se considera outliner. Siendo RI (Rango Intercuatil).
+Para ello, vamos a diseñar una función que detecte outliners. Como hemos aprendido a hacerlo es con la siguiente fórmula: si valor **∈** [Q1 - 1.5 \* RI, Q3 + 1.5 \* RI] se considera outliner. Siendo RI (Rango Intercuatil). Solo miramos el conjunto de Train para que el conjunto de Test no se aproveche de dichos datos (p. independecia de conjuntos).
 
 ```{r}
 credit.Datos.Train <- combined_credit[combined_credit$Origen == "train", ]
@@ -107,7 +109,7 @@ credit.Datos.continuas <- credit.Datos.Train[, sapply(credit.Datos.Train, is.num
 outliners <- lapply(credit.Datos.continuas, detectar_outliers)
 
 # Contar los outliers por variable
-sumas_outliners <- sapply(outliners, sum)
+sumas_outliners <- sapply(outliners, function(x) sum(x, na.rm = TRUE))
 sumas_outliners
 ```
 
@@ -124,7 +126,7 @@ proporciones <- lapply(sumas_outliners, proporcion)
 proporciones
 ```
 
-Según hemos estado investigando cuando el porcentaje de outliners se encuentra entre 5% y 15% hay que tratarlos ya que pueden ser problemáticos. Siendo estos: AnyosContratado, Solvencia, V14 y V15:
+Según hemos estado investigando cuando el porcentaje de outliners es superior a 5% hay que tratarlos ya que pueden ser problemáticos. En este caso como mucho tenemos un 15% que es un valor alto, pero tampoco es elevadísimo. Siendo estos: AnyosContratado, Solvencia y V15:
 
 ```{r}
 boxplot(credit.Datos.Train$AnyosContratado,boxwex=0.15,ylab="AnyosContratado")
@@ -134,10 +136,6 @@ abline(h=mean(credit.Datos.Train$AnyosContratado,na.rm=T),lty=2)
 boxplot(credit.Datos.Train$Solvencia,boxwex=0.15,ylab="Solvencia")
 rug(jitter(credit.Datos.Train$Solvencia),side=2)
 abline(h=mean(credit.Datos.Train$Solvencia,na.rm=T),lty=2)
-
-boxplot(credit.Datos.Train$V14,boxwex=0.15,ylab="V14")
-rug(jitter(credit.Datos.Train$V14),side=2)
-abline(h=mean(credit.Datos.Train$V14,na.rm=T),lty=2)
 
 boxplot(credit.Datos.Train$V15,boxwex=0.15,ylab="V15")
 rug(jitter(credit.Datos.Train$V15),side=2)
@@ -166,7 +164,7 @@ winsorizar_con_limites <- function(x, limites) {
   return(x)
 }
 
-columnas_a_winsorizar <- c("AnyosContratado", "Solvencia", "V14", "V15")
+columnas_a_winsorizar <- c("AnyosContratado", "Solvencia", "V15")
 
 credit.Datos.Train.wins <- credit.Datos.Train
 credit.Datos.Test.wins <- credit.Datos.Test
@@ -179,34 +177,39 @@ for (col in columnas_a_winsorizar) {
   credit.Datos.Train.wins[[col]] <- winsorizar_con_limites(credit.Datos.Train.wins[[col]], limites_winsorizacion[[col]])
 }
 
-# Aplicar los mismos límites al conjunto de prueba
+# Aplicar los mismos límites al conjunto de prueba (p. de independencia de conjuntos)
 for (col in columnas_a_winsorizar) {
   credit.Datos.Test.wins[[col]] <- winsorizar_con_limites(credit.Datos.Test.wins[[col]], limites_winsorizacion[[col]])
 }
+```
 
-# En el caso de que NO queramos usar la winsorización solo debemos de comentar líneas
+En el caso de que NO queramos usar la winsorización solo debemos de comentar líneas:
+
+```{r}
 credit.Datos.Train <- credit.Datos.Train.wins
 credit.Datos.Test <- credit.Datos.Test.wins
 ```
 
-Comprobamos que ya no hay valores fuera de rango, excepto en "Deuda" que el porcentaje es muy bajo.
+Comprobamos que ya no hay valores fuera de rango, excepto en "Edad", "Deuda" y "V14" que el porcentaje es muy bajo.
 
 ```{r}
 credit.Datos.continuas <- credit.Datos.Train[, sapply(credit.Datos.Train, is.numeric)]
 outliners <- lapply(credit.Datos.continuas, detectar_outliers)
 
 # Contar los outliers por variable
-sumas_outliners <- sapply(outliners, sum)
+sumas_outliners <- sapply(outliners, function(x) sum(x, na.rm = TRUE))
 sumas_outliners
 ```
 
-Sin embargo, debemos de analizar si en "Deuda" hay errores evidentes que puedan perjudicar el rendimiento del modelo:
+Sin embargo, debemos de analizar si en "Edad", "Deuda" y "V14" hay errores evidentes que puedan perjudicar el rendimiento del modelo:
 
 ```{r}
+summary(credit.Datos.Train$Edad)
 summary(credit.Datos.Train$Deuda)
+summary(credit.Datos.Train$V14)
 ```
 
-No parece que haya valores incorrectos. En caso de que hubiera valores negativos, sería sospechoso, pero no parece que sea así.
+En Deuda y V14 no parece que haya valores incorrectos. Sobre todo en Deuda no parece que haya nada raro, en cuanto a V14 no podemos decir mucho ya que no conocemos (especulado) su significado.
 
 Sin embargo en Edad nos podemos dar cuenta que hay valores erroneos, ya que los menores de edad en Estados Unidos no pueden solicitar créditos. Por tanto, podemos sustituir los valores menos a 18, por 18:
 
@@ -616,338 +619,466 @@ nearZeroVar(credit.Datos.Test[, 1:16])
 
 Como vemos no hay ninguna columna que tenga varianza cercana a cero, lo que nos indica que los datos están ya bastante "limpios".
 
-#### 2. Eliminar variables correladas:
-
-Ya hemos justificado antes que no hay variables correladas, observando la matriz de correlación.
+Quitamos la última columna
 
 ```{r}
-#Dummys
-credit.Data.To.Dummy <- rbind(credit.Datos.Train, credit.Datos.Test)
-credit.Var.Salida <- c("V16")
-credit.Var.Salida.Usada <- c("V16", "Origen")
-credit.Var.Entrada.Usadas <- setdiff(names(credit.Data.To.Dummy),credit.Var.Salida.Usada)
-credit.Var.Entrada.Dummys <- credit.Var.Entrada.Usadas
-summary(credit.Data.To.Dummy)
-# También qué factores serán Ranked  (tienen un orden implícito o una jerarquía definida, 
-# pero no se consideran completamente ordinales en el sentido clásico)
-credit.Ranked.Factors <- c("Genero", "EstadoCivil", "Empleado","composicionPoblacion", "V9", "V12")
-# Se separan los factores ordenados (no hay que hacer Dummy)
-credit.All.Factors<-names(credit.Data.To.Dummy[,credit.Var.Entrada.Usadas])[sapply(
-  credit.Data.To.Dummy[,credit.Var.Entrada.Usadas], FUN=is.factor)]
-credit.Ordered.Factors<-names(credit.Data.To.Dummy[,credit.Var.Entrada.Usadas])[sapply(
-  credit.Data.To.Dummy[,credit.Var.Entrada.Usadas], FUN=is.ordered)]
-# No hay ordenados 
-credit.Non.Ordered.Factors<-setdiff(credit.All.Factors,credit.Ordered.Factors)
-credit.No.Ranked<-setdiff(credit.Non.Ordered.Factors,credit.Ranked.Factors)
-
-# Se calculan las dummy de los ranked y no ranked
-credit.Cols.Ranked <- NULL
-if (length(credit.Ranked.Factors) > 0) {
-  credit.Dummy.Ranked <- dummyVars(
-    paste("~", paste(credit.Ranked.Factors, sep = "", collapse = " + "), collapse = ""),
-    data = credit.Data.To.Dummy, fullRank = T)
-  credit.Cols.Ranked <- data.frame(predict(credit.Dummy.Ranked,
-                                           newdata = credit.Data.To.Dummy))
-}
-credit.Cols.No.Ranked <- NULL
-if (length(credit.No.Ranked) > 0) {
-  credit.Dummy.No.Ranked <- dummyVars(
-    paste("~", paste(credit.No.Ranked, sep = "", collapse = " + "), collapse = ""),
-    data = credit.Data.To.Dummy)
-  credit.Cols.No.Ranked <- data.frame(predict(credit.Dummy.No.Ranked,
-                                              newdata = credit.Data.To.Dummy))
-}
-
-
-credit.Cols.Salida <- data.frame(credit.Data.To.Dummy[, credit.Var.Salida.Usada])
-names(credit.Cols.Salida) <- credit.Var.Salida.Usada
-
-# Se eliminan de los datos originales todas las columnas a reemplazar
-credit.Data.With.Dummy <- credit.Data.To.Dummy[, setdiff(names(credit.Data.To.Dummy),
-                                                         credit.Var.Salida)]
-credit.Data.With.Dummy <- credit.Data.With.Dummy[, setdiff(names(credit.Data.With.Dummy),
-                                                           credit.No.Ranked)]
-credit.Data.With.Dummy <- credit.Data.With.Dummy[, setdiff(names(credit.Data.With.Dummy),
-                                                           credit.Ranked.Factors)]
-credit.Data.With.Dummy <- credit.Data.With.Dummy[, setdiff(names(credit.Data.With.Dummy),
-                                                           credit.Ordered.Factors)]
-
-# Se añaden todas las columnas nuevas
-if (!is.null(credit.Cols.Ranked))
-  credit.Data.With.Dummy <- cbind(credit.Data.With.Dummy, credit.Cols.Ranked)
-if (!is.null(credit.Cols.No.Ranked))
-  credit.Data.With.Dummy <- cbind(credit.Data.With.Dummy, credit.Cols.No.Ranked)
-credit.Data.With.Dummy <- cbind(credit.Data.With.Dummy, credit.Cols.Salida)
+credit.Datos.Train$Origen <- NULL
+credit.Datos.Test$Origen <- NULL
 ```
 
-En caso de querer eliminar el paso de Dummy, podemos simplemente comentar el siguiente código:
+## Entrenamiento de modelos que proporciona Caret
+
+### **1. GBM:**
+
+Lo primero que debemos de buscar son las características de este modelo para ver si es interesante para nuestro caso. En este enlace podemos encontrar mucha información acerca del mismo:\
+<https://www.linkedin.com/pulse/ai-algorithms-deep-dive-gradient-boosting-machines-gbm-vasu-rao-snesc>
+
+En dicho enlace, en el apartado "Applications of GBM in Enterprises", recomienda usarlo para "Credit Scoring":
+
+-   **Credit Scoring:** Financial institutions use GBM to predict the creditworthiness of loan applicants, enabling informed lending decisions and minimizing risk.
+
+También contamos con información sobre sus debilidades, y es importante tenerlas en cuenta:
+
+While GBM is a powerful tool, it's not without its limitations:
+
+-   **Computational Intensity:** Training GBM models can be computationally expensive, especially when dealing with large datasets and many boosting stages (iterations).
+
+-   **Risk of Overfitting:** Without proper tuning and regularization techniques, GBM models can overfit, particularly on noisy data. Overfitting occurs when the model performs well on the training data but poorly on unseen data.
+
+-   **Parameter Sensitivity:** The performance of GBM models is highly dependent on the chosen hyperparameters. Careful tuning is necessary to achieve optimal results.
+
+Por lo tanto, puede ser una buena opción. Una vez hemos investigado sobre su funcionamiento, es importante ver con qué requisitos de preprocesado gbm se encuentra más cómodo. En el enlace anterior recomiendan:
+
+1.  **Data Preprocessing:** Clean your data to ensure optimal GBM performance. This includes handling missing values, normalizing numerical features, and encoding categorical variables.
+
+En el enlace hay mucha información de utilidad que luego nos será de gran utilidad. Seguimos las recomendaciones, y el siguiente paso es hacer Dummy. Aunque antes deberíamos de hacer una copia de la base de datos para no sobrescribirla.
 
 ```{r}
-credit.Datos.Train <- credit.Data.With.Dummy[credit.Data.With.Dummy$Origen == "train", ]
-credit.Datos.Test <- credit.Data.With.Dummy[credit.Data.With.Dummy$Origen == "test", ]
+credit.Datos.gbm.Train <- credit.Datos.Train
+credit.Datos.gbm.Test <- credit.Datos.Test
 ```
 
-## Pre-procesado de datos (III): Transformando y construyendo variables (Feature Engineering).
-
-#### 1. Sobre transformaciones de las variables de salida
-
-No hay casos en los que a escala pueda dar errores de representación de los valores por la precisión de la representación. Y por temas de legibilidad ya hemos cambiado los valores de salida. Siendo el signo más y menos, aprobada y rechazada respectivamente.
-
-#### 2. Transformación de Variables
-
-##### 2.1. Escalado:
-
-NORMALIZACIÓN CENTER SCALE
-
-Mostramos los datos antes de hacer la normalización:
+#### 1.1 Dummy:
 
 ```{r}
-credit.Datos.Todo <- rbind(credit.Datos.Train, credit.Datos.Test)
-credit.Continuas <- credit.Datos.Todo[, sapply(credit.Datos.Todo, is.numeric)]
-ggplot() + 
-  geom_density(aes(x = credit.Continuas$Edad, fill = "Edad"), alpha = 0.5) +
-  geom_density(aes(x = credit.Continuas$Deuda, fill = "Deuda"), alpha = 0.5) +
-  geom_density(aes(x = credit.Continuas$AnyosContratado, fill = "Años Contratado"), alpha = 0.5) +
-  geom_density(aes(x = credit.Continuas$Solvencia, fill = "Solvencia"), alpha = 0.5) +
-  geom_density(aes(x = credit.Continuas$V14, fill = "V14"), alpha = 0.5) +
-  geom_density(aes(x = credit.Continuas$V15, fill = "V15"), alpha = 0.5) +
-  labs(
-    title = "Distribución de Variables Continuas (Density Plot)",
-    x = "Valor",
-    y = "Densidad"
-  ) +
-  scale_fill_manual(
-    values = c("lightgreen", "lightblue", "lightcoral", "lightyellow", "lightpink", "lightgray"),
-    name = "Variables",
-    labels = c("Edad", "Deuda", "Años Contratado", "Solvencia", "V14", "V15")
-  ) +
-  theme_minimal() +
-  xlim(-1, 100)
-theme(legend.title = element_blank())
+# Cogemos la base de datos que queremos
+credit.Datos.gbm.dummy.Train <- credit.Datos.gbm.Train
+credit.Datos.gbm.dummy.Test <- credit.Datos.gbm.Test
+
+# Definir la variable de salida y las variables de entrada
+credit.Var.Salida.Usada <- "V16"
+credit.Vars.Entrada.Usadas <- setdiff(names(credit.Datos.gbm.dummy.Train), credit.Var.Salida.Usada)
+
+# Convertir la variable de salida a factor (para clasificación)
+credit.Datos.gbm.dummy.Train[[credit.Var.Salida.Usada]] <- as.factor(credit.Datos.gbm.dummy.Train[[credit.Var.Salida.Usada]])
+credit.Datos.gbm.dummy.Test[[credit.Var.Salida.Usada]] <- as.factor(credit.Datos.gbm.dummy.Test[[credit.Var.Salida.Usada]])
+
+# Crear el modelo dummy solo para las variables de entrada
+dummy_model <- dummyVars(~ ., data = credit.Datos.gbm.dummy.Train[, credit.Vars.Entrada.Usadas], fullRank = TRUE)
+
+# Transformar las variables de entrada a dummies (sin tocar la salida)
+credit.Datos.Train.Dummies <- data.frame(predict(dummy_model, credit.Datos.gbm.dummy.Train[, credit.Vars.Entrada.Usadas]))
+credit.Datos.Test.Dummies <- data.frame(predict(dummy_model, credit.Datos.gbm.dummy.Test[, credit.Vars.Entrada.Usadas]))
+
+# Añadir la variable de salida de nuevo a los conjuntos transformados
+credit.Datos.Train.Dummies[[credit.Var.Salida.Usada]] <- credit.Datos.gbm.dummy.Train[[credit.Var.Salida.Usada]]
+credit.Datos.Test.Dummies[[credit.Var.Salida.Usada]] <- credit.Datos.gbm.dummy.Test[[credit.Var.Salida.Usada]]
+
+# Guardamos (en caso de querer eliminar, eliminamos estas líneas)
+credit.Datos.gbm.Train <- credit.Datos.Train.Dummies
+credit.Datos.gbm.Test <- credit.Datos.Test.Dummies
 ```
 
-Hay que destacar que hemos limitado la x a 100, para poder visualizar el gráfico (de otra forma sería ilegible). Los datos llegarían hasta el 1000. Ahora vamos a normalizar y ver el gráfico de nuevo:
+#### 1.2 PCA:
 
-Anotar que las categóricas se quitan solas
+Pese a no indicar en ningún sitio que PCA/ICA sea necesario en gbm, debemos de comprobarlo experimentalmente. Por lo tanto, lo incluimos en nuestro procesado:
 
 ```{r}
-credit.Datos.Todo <- rbind(credit.Datos.Train, credit.Datos.Test)
+# Cogemos la base de datos que nos interesa, lo hacemos así para que sea configurable
+credit.Datos.gbm.pca.Train <- credit.Datos.gbm.Train
+credit.Datos.gbm.pca.Test <- credit.Datos.gbm.Test
+
+credit.PreProc.Pca.Mod <- preProcess(credit.Datos.gbm.pca.Train, method = "pca", thresh = 0.95)  # 95% de la varianza explicada
+print(credit.PreProc.Pca.Mod)
+credit.Datos.Train.Pca <- predict(credit.PreProc.Pca.Mod, credit.Datos.gbm.pca.Train)
+credit.Datos.Test.Pca <- predict(credit.PreProc.Pca.Mod, credit.Datos.gbm.pca.Test)
+
+# Guardamos (en caso de querer eliminar, eliminamos estas líneas)
+#credit.Datos.gbm.Train <- credit.Datos.Train.Pca
+#credit.Datos.gbm.Test <- credit.Datos.Test.Pca
+```
+
+#### 1.3 ICA:
+
+```{r}
+# Cogemos la base de datos que nos interesa, lo hacemos así para que sea configurable
+credit.Datos.gbm.ica.Train <- credit.Datos.gbm.Train
+credit.Datos.gbm.ica.Test <- credit.Datos.gbm.Test
+
+credit.PreProc.Ica.Mod <- preProcess(credit.Datos.gbm.ica.Train, method = "ica", n.comp = 10)  # 10 componentes independientes
+credit.PreProc.Ica.Mod
+credit.Datos.Train.Ica <- predict(credit.PreProc.Ica.Mod, credit.Datos.gbm.ica.Train)
+credit.Datos.Test.Ica <- predict(credit.PreProc.Ica.Mod, credit.Datos.gbm.ica.Test)
+
+# Guardamos (en caso de querer eliminar, eliminamos estas líneas)
+#credit.Datos.gbm.Train <- credit.Datos.Train.Ica
+#credit.Datos.gbm.Test <- credit.Datos.Test.Ica
+```
+
+\
+En la web anterior recomiendan normalizar los datos antes del entrenamiento, sin embargo, como sabemos gbm está basado en árboles de decisión, y la normalización no les afecta mucho. Como podemos encontrar en: <https://datascience.stackexchange.com/questions/6721/how-to-preprocess-different-kinds-of-data-continuous-discrete-categorical-be>
+
+*"In fact, the results should be consistent regardless of any scaling or translational normalization, since the trees can choose equivalent splitting points"*\
+
+Por lo tanto, antes esta contradicción, la única forma de comprobarlo es realizando los dos tipos de normalización que encontramos en el documento de caret y viendo resultados:
+
+#### 1.4. Normalización range:
+
+```{r}
+library(caret)
+
+# Cogemos la base de datos que nos interesa, lo hacemos así para que sea configurable
+credit.Datos.gbm.norm.range.Train <- credit.Datos.gbm.Train
+credit.Datos.gbm.norm.range.Test <- credit.Datos.gbm.Test
+
+# Identificar las variables numéricas del conjunto de entrenamiento
+numeric_vars <- names(credit.Datos.gbm.norm.range.Train)[sapply(credit.Datos.gbm.norm.range.Train, is.numeric)]
+
+# Ajustar el modelo de preprocesamiento en el entrenamiento (normalización Min-Max)
+# "range" realiza una normalización entre 0 y 1
+preProcParams <- preProcess(credit.Datos.gbm.norm.range.Train[, numeric_vars], method = c("range"))
+
+# Aplicar la normalización al conjunto de entrenamiento
+credit.Datos.Train.norm <- predict(preProcParams, credit.Datos.gbm.norm.range.Train)
+
+# Aplicar la misma transformación al conjunto de test
+credit.Datos.Test.norm <- predict(preProcParams, credit.Datos.gbm.norm.range.Test)
+
+
+# Guardamos (en caso de querer eliminar, eliminamos estas líneas)
+#credit.Datos.gbm.Train <- credit.Datos.Train.norm
+#credit.Datos.gbm.Test <- credit.Datos.Test.norm
+```
+
+#### 1.5. Normalización center-scale:
+
+```{r}
+# Cogemos la base de datos que nos interesa, lo hacemos así para que sea configurable
+credit.Datos.gbm.norm.cs.Train <- credit.Datos.gbm.Train
+credit.Datos.gbm.norm.cs.Test <- credit.Datos.gbm.Test
 
 credit.Var.Salida.Usada <- c("V16")
-credit.Var.Entrada.Usadas <- setdiff(names(credit.Datos.Todo),credit.Var.Salida.Usada)
-credit.Var.Entrada.Escaladas <- credit.Var.Entrada.Usadas
+credit.Var.Entrada.Usadas <- setdiff(names(credit.Datos.gbm.norm.cs.Train),credit.Var.Salida.Usada)
 
-credit.preProc.CS.Mod<-preProcess(credit.Datos.Train[credit.Var.Entrada.Escaladas],
-                                method=c("center","scale"))
-credit.Datos.Train.Transf.CS<-predict(credit.preProc.CS.Mod,credit.Datos.Train)
-credit.Datos.Test.Transf.CS<-predict(credit.preProc.CS.Mod,credit.Datos.Test)
+credit.preProc.CS.Mod<-preProcess(credit.Datos.gbm.norm.cs.Train[credit.Var.Entrada.Usadas],
+                                  method=c("center","scale"))
+credit.Datos.Train.CS <- predict(credit.preProc.CS.Mod,credit.Datos.gbm.norm.cs.Train)
+credit.Datos.Test.CS <- predict(credit.preProc.CS.Mod,credit.Datos.gbm.norm.cs.Test)
 
-VarToPlot<-credit.Var.Entrada.Escaladas
-d1<-densityplot(
-  formula(paste("~",paste(VarToPlot,sep="",collapse =" + "),collapse="")),
-  data=credit.Datos.Train,main="Variables sin Normalizar",plot.points=F)
-d2<-densityplot(
-  formula(paste("~",paste(VarToPlot,sep="",collapse =" + "),collapse="")),
-  data=credit.Datos.Train.Transf.CS, main="Variables Normalizadas",plot.points=F)
-# Gráficos en blanco y negro (mejor para imprimir)
-trellis.par.set(theme = standard.theme("pdf",color=FALSE))
-print(d1,position=c(0,0,0.5,1),more=T)
-print(d2,position=c(0.5,0,1,1))
-# Volvemos a gráficos normales
-trellis.par.set(theme = standard.theme("pdf"))
-
-
-credit.Datos.Train.Transf.CS <- credit.Datos.Train.Transf.CS  # Este es el dataset normalizado
-
-# Identificar las variables numéricas (continuas)
-credit.Vars.Continuas <- sapply(credit.Datos.Train.Transf.CS, is.numeric)
-credit.normalizadasCS <- credit.Datos.Train.Transf.CS[, credit.Vars.Continuas]
-
-##############
-# Crear el gráfico directamente
-ggplot() + 
-  geom_density(aes(x = credit.normalizadasCS$Edad, fill = "Edad"), alpha = 0.5) +
-  geom_density(aes(x = credit.normalizadasCS$Deuda, fill = "Deuda"), alpha = 0.5) +
-  geom_density(aes(x = credit.normalizadasCS$AnyosContratado, fill = "Años Contratado"), alpha = 0.5) +
-  geom_density(aes(x = credit.normalizadasCS$Solvencia, fill = "Solvencia"), alpha = 0.5) +
-  geom_density(aes(x = credit.normalizadasCS$V14, fill = "V14"), alpha = 0.5) +
-  geom_density(aes(x = credit.normalizadasCS$V15, fill = "V15"), alpha = 0.5) +
-  labs(
-    title = "Distribución de Variables Continuas (Density Plot)",
-    x = "Valor",
-    y = "Densidad"
-  ) +
-  scale_fill_manual(
-    values = c("lightgreen", "lightblue", "lightcoral", "lightyellow", "lightpink", "lightgray"),
-    name = "Variables",
-    labels = c("Edad", "Deuda", "Años Contratado", "Solvencia", "V14", "V15")
-  ) +
-  theme_minimal() +
-  #xlim(-1, 2.5)
-theme(legend.title = element_blank())
+#credit.Datos.gbm.Train <- credit.Datos.Train.CS
+#credit.Datos.gbm.Test <- credit.Datos.Test.CS
 ```
 
-En caso de no querer incluir la normalización center scale en nuestros datos, comentar esto:
+#### 1.6. Últimas comprobaciones antes de entrenar:
+
+Comprobamos si se ha generado alguna variable con varianza cercana a cero, y eliminamos dichas columnas (pasará cuando hagamos dummy y no hagamos PCA/ICA):
 
 ```{r}
-credit.Datos.Train <- credit.normalizadasCS[credit.normalizadasCS$Origen == "train", ]
-credit.Datos.Test <- credit.normalizadasCS[credit.normalizadasCS$Origen == "test", ]
+nearZeroVar(credit.Datos.gbm.Train)
+nearZeroVar(credit.Datos.gbm.Test)
+
+# Detectar columnas con varianza cero en Train
+cols_varianza_cero <- nearZeroVar(credit.Datos.gbm.Train, saveMetrics = TRUE)
+
+# Ver columnas eliminadas
+print("Columnas Eliminadas por Varianza Cero:")
+print(rownames(cols_varianza_cero[cols_varianza_cero$nzv == TRUE, ]))
+
+# Eliminar columnas de Train y Test
+credit.Datos.gbm.Train <- credit.Datos.gbm.Train[, !cols_varianza_cero$nzv]
+credit.Datos.gbm.Test <- credit.Datos.gbm.Test[, !cols_varianza_cero$nzv]
+
+nearZeroVar(credit.Datos.gbm.Train)
+nearZeroVar(credit.Datos.gbm.Test)
+
 ```
 
-RANGE:\
+Todo correcto.
+
+#### 1.8. Entrenamiento: 
 
 ```{r}
-#Normalizacion Range [0,1]
-credit.preProc.Range.Mod<-preProcess(credit.Datos.Train[credit.Var.Entrada.Escaladas],
-                                  method="range")
-credit.Datos.Train.Transf.Range<-predict(credit.preProc.Range.Mod,credit.Datos.Train)
-credit.Datos.Test.Transf.Range<-predict(credit.preProc.Range.Mod,credit.Datos.Test)
+credit.Var.Salida.Usada <- "V16"
+credit.Vars.Entrada.Usadas <- setdiff(names(credit.Datos.gbm.Train), credit.Var.Salida.Usada)
 
-credit.Vars.Continuas <- sapply(credit.Datos.Train.Transf.Range, is.numeric)
-credit.normalizadasRange <- credit.Datos.Train.Transf.Range[, credit.Vars.Continuas]
-
-##############
-# Crear el gráfico directamente
-ggplot() + 
-  geom_density(aes(x = credit.normalizadasRange$Edad, fill = "Edad"), alpha = 0.5) +
-  geom_density(aes(x = credit.normalizadasRange$Deuda, fill = "Deuda"), alpha = 0.5) +
-  geom_density(aes(x = credit.normalizadasRange$AnyosContratado, fill = "Años Contratado"), alpha = 0.5) +
-  geom_density(aes(x = credit.normalizadasRange$Solvencia, fill = "Solvencia"), alpha = 0.5) +
-  geom_density(aes(x = credit.normalizadasRange$V14, fill = "V14"), alpha = 0.5) +
-  geom_density(aes(x = credit.normalizadasRange$V15, fill = "V15"), alpha = 0.5) +
-  labs(
-    title = "Distribución de Variables Continuas (Density Plot)",
-    x = "Valor",
-    y = "Densidad"
-  ) +
-  scale_fill_manual(
-    values = c("lightgreen", "lightblue", "lightcoral", "lightyellow", "lightpink", "lightgray"),
-    name = "Variables",
-    labels = c("Edad", "Deuda", "Años Contratado", "Solvencia", "V14", "V15")
-  ) +
-  theme_minimal() +
-  xlim(-1, 1)
-theme(legend.title = element_blank())
-```
-
-En caso de NO querer incluir esta normalización de tipo rango, comentar este código:
-
-```{r}
-#credit.Datos.Train <- credit.normalizadasRange[credit.normalizadasRange$Origen == "train", ]
-#credit.Datos.Test <- credit.normalizadasRange[credit.normalizadasRange$Origen == "test", ]
-```
-
-PCA:
-
-```{r}
-
-#Eliminar previamente valores atipicos, muy sebsible
-#Sobre los datos de entrenamiento IMPORTANTE
-credit.Var.Entrada.Continuas <- which(sapply(credit.Datos.Train[, -ncol(credit.Datos.Train)], is.numeric))
-
-credit.PreProc.Pca.Mod<-preProcess(credit.Datos.Train[credit.Var.Entrada.Continuas],method=c("pca"),thresh = 0.9)
-credit.Datos.Train.Transf.PCA <- predict(credit.PreProc.Pca.Mod, credit.Datos.Train)
-credit.Datos.Test.Transf.PCA <- predict(credit.PreProc.Pca.Mod, credit.Datos.Test)
-
-print(credit.PreProc.Pca.Mod)
-summary(credit.Datos.Train.Transf.PCA)
-summary(credit.Datos.Test.Transf.PCA)
-```
-
-En caso de NO querer incluir PCA, comentar el siguiente código:
-
-```{r}
-credit.Datos.Train <- credit.Datos.Train.Transf.PCA
-credit.Datos.Test <- credit.Datos.Test.Transf.PCA
-```
-
-ICA:\
-
-```{r}
-# IMPORTANTE LEER: EN MI CASO HE TENIDO QUE INSTALAR:
-#           sudo apt install liblapack-dev libblas-dev gfortran
-
-# Sobre credit (se calcula sobre train)
-library(fastICA)
-library(caret)
-
-
-credit.PreProc.Ica.Mod <- preProcess(credit.Datos.Train[credit.Var.Entrada.Continuas], method = c("ica"), n.comp = 2)
-credit.Datos.Train.Transf.ICA <- predict(credit.PreProc.Ica.Mod, credit.Datos.Train)
-credit.Datos.Test.Transf.ICA <- predict(credit.PreProc.Ica.Mod, credit.Datos.Test)
-print(credit.PreProc.Ica.Mod)
-summary(credit.Datos.Train.Transf.ICA)
-summary(credit.Datos.Test.Transf.ICA)
-```
-
-En caso de NO querer incluir ICA, comentar el siguiente código:
-
-```{r}
-#credit.Datos.Train <- credit.Datos.Train.Transf.ICA
-#credit.Datos.Test <- credit.Datos.Test.Transf.ICA
-```
-
-PRIMER ENTRENAMIENTO DE GBM:\
-[lista de requisitos probados:]{.underline}
-
-1.  Imputación estándar
-
-2.  dummies
-
-3.  Normalización CENTER SCALE (NO ME DEJA)
-
-4.  PCA (NO ME DEJA AL NORMALIZAR)\
-
-```{r}
-# Antes de nada:
-
-# Eliminar la última columna del conjunto de entrenamiento
-credit.Datos.Train <- credit.Datos.Train[, -ncol(credit.Datos.Train)]
-
-# Eliminar la última columna del conjunto de prueba
-credit.Datos.Test <- credit.Datos.Test[, -ncol(credit.Datos.Test)]
-
-
-library(caret)
-
-# Definir las variables de entrada y salida
-credit.Var.Salida.Usada <- "V16"  # Cambiar según tu variable de salida
-credit.Vars.Entrada.Usadas <- setdiff(names(credit.Datos.Train), credit.Var.Salida.Usada)
-
-# Configurar el modelo GBM
-set.seed(1234)
-credit.modelo.gbm <- train(
-  credit.Datos.Train[credit.Vars.Entrada.Usadas], # Variables de entrada
-  credit.Datos.Train[[credit.Var.Salida.Usada]], # Variable de salida
-  method = "gbm",                                # Método GBM
-  trControl = trainControl(method = "cv", number = 5), # Validación cruzada
-  verbose = FALSE                                # Evitar logs innecesarios
-)
+credit.trainCtrl.none.clssProb <- trainControl(method = "none", classProbs = TRUE)
+set.seed(2)
+credit.modelo.none.gbm.ROC<-train(credit.Datos.gbm.Train[credit.Vars.Entrada.Usadas],
+    credit.Datos.gbm.Train[[credit.Var.Salida.Usada]],
+    method = "gbm",
+    trControl=credit.trainCtrl.none.clssProb,
+    verbose = FALSE,
+    tuneGrid = data.frame(interaction.depth = 4,
+    n.trees = 100,
+    shrinkage = .1,
+    n.minobsinnode = 20),
+    metric = "ROC")
 
 # Ver los detalles del modelo entrenado
-print(credit.modelo.gbm)
+print(credit.modelo.none.gbm.ROC)
 
 # Predecir en el conjunto de prueba
-credit.Pred.Test <- predict(credit.modelo.gbm, credit.Datos.Test)
+credit.Pred.Test <- predict(credit.modelo.none.gbm.ROC, credit.Datos.gbm.Test)
 
 # Evaluar el rendimiento en el conjunto de prueba
-confusionMatrix(credit.Pred.Test, credit.Datos.Test[[credit.Var.Salida.Usada]])
-
-```
-
-Vemos procentaje:\
-
-```{r}
-# Realizar predicciones en el conjunto de prueba
-predicciones_test <- predict(credit.modelo.gbm, credit.Datos.Test)
-
-# Generar la matriz de confusión
-matriz_confusion <- confusionMatrix(predicciones_test, credit.Datos.Test[[credit.Var.Salida.Usada]])
+matriz_confusion <- confusionMatrix(credit.Pred.Test, credit.Datos.gbm.Test[[credit.Var.Salida.Usada]])
 
 # Extraer el porcentaje de acierto
 porcentaje_acierto <- matriz_confusion$overall["Accuracy"] * 100
 
 # Mostrar el porcentaje de acierto
 print(paste("Porcentaje de acierto:", round(porcentaje_acierto, 2), "%"))
+```
+
+#### 1.9. Encontrar los mejores hiper-parámetros y ajustar modelo final:
+
+```{r}
+library(caret)
+library(gbm)
+
+# Configuración de la validación cruzada
+credit.trainCtrl.3cv10.resampAll <- trainControl(
+  method = "repeatedcv", # Validación cruzada de 10 pliegues
+  number = 10,           # Número de pliegues
+  repeats = 3,           # Repeticiones
+  verboseIter = F,    # Voy a quitar Verbose porque inunda toda la pantalla
+  returnResamp = "all"   # Guardar todos los resultados
+)
+
+# Rejilla de hiperparámetros para GBM
+gbm.grid <- expand.grid(
+  n.trees = c(100, 500),              # Árboles limitados
+  shrinkage = c(0.01, 0.1),           # Tasas de aprendizaje clave
+  n.minobsinnode = c(5, 10),          # Nodos hijos mínimos
+  interaction.depth = c(3, 5)         # Profundidad limitada
+)
+
+# Definir variables predictoras y objetivo
+credit.Var.Salida.Usada <- "V16"
+credit.Vars.Entrada.Usadas <- setdiff(names(credit.Datos.gbm.Train), credit.Var.Salida.Usada)
+
+set.seed(2)
+credit.modelo.3cv10.grid.gbm<-train(
+  credit.Datos.gbm.Train[credit.Vars.Entrada.Usadas],
+  credit.Datos.gbm.Train[[credit.Var.Salida.Usada]],
+  method="gbm", trControl=credit.trainCtrl.3cv10.resampAll,
+  tuneGrid = gbm.grid
+,verbose=F
+)
+
+# Mostrar resultados
+print(credit.modelo.3cv10.grid.gbm)
+
+# Evaluación en el conjunto de test
+predictions <- predict(credit.modelo.3cv10.grid.gbm, credit.Datos.gbm.Test)
+
+# Calcular matriz de confusión y Accuracy
+conf_mat <- confusionMatrix(predictions, credit.Datos.gbm.Test[[credit.Var.Salida.Usada]])
+
+# Mostrar el porcentaje de acierto
+accuracy <- conf_mat$overall["Accuracy"]
+print(paste("Porcentaje de Acierto:", round(accuracy * 100, 2), "%"))
+```
+
+#### 1.10. Entrenamos con hiper-parámetros fijos:
+
+Una vez hemos encontrado los mejores hiper-parámetros debemos de entrenar con dichos hiper-parámetros. Los que mejor resultado han dado son:\
+\
+Árboles seleccionados: 500\
+Profundidad máxima: 5\
+Tasa de aprendizaje: 0.01\
+Mínimos nodos por hoja: 10\
+\
+Por lo tanto, vamos a entrenar con dichos hiper-parámetros:
+
+```{r}
+library(caret)
+library(gbm)
+
+# Configuración sin remuestreo para entrenar el modelo final
+credit.trainCtrl.none <- trainControl(
+  method = "none",  # Sin remuestreo
+  classProbs = TRUE # Para evaluar métricas de rendimiento
+)
+
+# Definir variables predictoras y objetivo
+credit.Var.Salida.Usada <- "V16"
+credit.Vars.Entrada.Usadas <- setdiff(names(credit.Datos.gbm.Train), credit.Var.Salida.Usada)
+
+# Entrenar el modelo con los mejores hiperparámetros seleccionados
+set.seed(2)
+credit.modelo.final.gbm <- train(
+  x = credit.Datos.gbm.Train[, credit.Vars.Entrada.Usadas],
+  y = credit.Datos.gbm.Train[[credit.Var.Salida.Usada]],
+  method = "gbm",
+  trControl = credit.trainCtrl.none,
+  tuneGrid = data.frame(
+    n.trees = 500,              # Árboles seleccionados
+    interaction.depth = 5,      # Profundidad máxima
+    shrinkage = 0.01,           # Tasa de aprendizaje
+    n.minobsinnode = 10         # Mínimos nodos por hoja
+  ),
+  metric = "Accuracy",          # Métrica de evaluación
+  verbose = FALSE               # Sin salida en consola
+)
+
+# Evaluación en el conjunto de prueba
+predictions <- predict(credit.modelo.final.gbm, credit.Datos.gbm.Test)
+
+# Calcular matriz de confusión y accuracy
+conf_mat <- confusionMatrix(predictions, credit.Datos.gbm.Test[[credit.Var.Salida.Usada]])
+accuracy <- conf_mat$overall["Accuracy"]
+
+# Mostrar resultados
+print(credit.modelo.final.gbm)
+print(paste("Porcentaje de Acierto (Modelo Final):", round(accuracy * 100, 2), "%"))
 
 ```
+
+**Es importante destacar que:\
+**Es curioso que en la búsqueda de hiper-parámetros obtengamos diferentes rendimientos que cuando "replicamos" el entrenamiento seleccionando ya los parámetros. Mientras en el primero obtenemos 86.86% en el otro obtenemos un 85.%.
+
+El 85.4% es probablemente el accuracy real en el conjunto de prueba, mientras que el 86.86% es un resultado estimado basado en la validación cruzada repetida. El segundo valor suele ser más optimista, mientras que el entrenamiento final refleja mejor el rendimiento real.
+
+**1.11. ¿Con qué configuración hemos hecho los entrenamientos?**
+
+Consideramos que la mejor forma de ver si la teoría se ha cumplido, es ejecutar muchas configuraciones distintas para gbm. En este caso las pruebas las hemos hecho con la versión optimista ya que todavía no sabíamos que hiper-parámetros poner al no tener la configuración seleccionada. Obtenemos:
+
++------------------------------+--------------+
+| Configuración                | Acierto      |
++==============================+==============+
+| Dummy                        | ```          |
+|                              | 86.86 %      |
+|                              | ```          |
++------------------------------+--------------+
+| PCA                          | ```          |
+|                              | 84.67 %      |
+|                              | ```          |
++------------------------------+--------------+
+| Norm. Range                  | ```          |
+|                              | 86.13 %      |
+|                              | ```          |
++------------------------------+--------------+
+| Norm. Center-Scale           | ```          |
+|                              | 86.13 %      |
+|                              | ```          |
++------------------------------+--------------+
+| Dummy+PCA                    | ```          |
+|                              | 86.86 %      |
+|                              | ```          |
++------------------------------+--------------+
+| Dummy+Norm. Range            | ```          |
+|                              | 86.86 %      |
+|                              | ```          |
++------------------------------+--------------+
+| Dummy+Norm. Center-Scale     | ```          |
+|                              | 86.86 %      |
+|                              | ```          |
++------------------------------+--------------+
+| Dummy+PCA+Norm. Range        | ```          |
+|                              | 86.86 %      |
+|                              | ```          |
++------------------------------+--------------+
+| Dummy+PCA+Norm. Center-Scale | ```          |
+|                              | 86.86 %      |
+|                              | ```          |
++------------------------------+--------------+
+| PCA+Norm. Range              | ```          |
+|                              | 84.67 %      |
+|                              | ```          |
++------------------------------+--------------+
+| PCA+Norm. Center-Scale       | ```          |
+|                              | 84.67 %      |
+|                              | ```          |
++------------------------------+--------------+
+| Dummy+ICA+Norm. Range        | ```          |
+|                              | 85.5 %       |
+|                              | ```          |
++------------------------------+--------------+
+| ICA                          | ```          |
+|                              | 83.21 %      |
+|                              | ```          |
++------------------------------+--------------+
+
+: **Nota:** En esta tabla NO están todas las combinaciones posibles, ya que sería demasiado largo, hemos pensado en las que mejor casarían, evitado usar preprocesados similares juntos (por ejemplo las dos normalizaciones), y hemos evitado muchas combinaciones aplicando el razonamiento.
+
+Esta tabla es muy representativa. En lo primero que nos fijamos es que parece ser que en 86.86 % hay un techo, que no aumenta. Si nos fijamos, si solo aplicamos Dummy, obtenemos el rendimiento máximo (de todos los rendimientos obtenidos), por lo tanto, nos da una idea de que realmente es muy necesario, tal y como se indicaba en el enlace comentado con anterioridad. En cuanto eliminamos Dummy todos los rendimientos son menores. PCA no aporta nada, de hecho, en algunos casos empeora el rendimiento, por ejemplo, cuando lo usamos junto a las normalizaciones. ICA más de lo mismo, al ser parecido a PCA (objetivos similares), obtiene rendimientos parecidos. En cuanto a las normalizaciones, son parecidas, no hay diferencias entre ellas, y obtienen buenos redimientos cuando las incluimos, pero menos que al usar Dummy.
+
+Para concluir, lo único realmente necesario es hacer Dummy, lo demás, para este caso y este modelo es innecesario.
+
+Según hemos podido encontrar en esta página web: <https://www.619.io/blog/2017/06/30/preliminary-investigation-pca-and-boosting/>\
+
+"It is a bit disappointing to observe no improvement after reducing the number of features using PCA; and even worse, we get some noticeable degradation of the baseline result. Sometimes things like that happen… A more thorough feature tinkering might help here to reduce the number of features and achieve better performance!"
+
+#### 1.12. Eliminar variables no importantes: 
+
+Podemos probar a eliminar las columnas que no se utilizan. Primero debemos de comprobar cuantas se utlizan:
+
+```{r}
+print(varImp(credit.modelo.final.gbm))
+```
+
+Como vemos solo hay 20 variables relevantes de 26 que hay. Por lo tanto, podemos probar a eliminarlas, y entrenar de nuevo:
+
+```{r}
+# Seleccionar las 10 variables más importantes
+vars_imp <- rownames(varImp(credit.modelo.final.gbm)$importance)[1:20]
+vars_imp <- union(vars_imp, "V16")
+
+# Filtrar la base de datos para incluir solo esas columnas
+credit.Datos.gbm.imp.Train <- credit.Datos.gbm.Train[, vars_imp, drop = FALSE]
+credit.Datos.gbm.imp.Test <- credit.Datos.gbm.Test[, vars_imp, drop = FALSE]
+
+credit.Var.Salida.Usada <- "V16"
+credit.Vars.Entrada.Usadas <- setdiff(names(credit.Datos.gbm.imp.Train), credit.Var.Salida.Usada)
+
+
+# Entrenar usando validación cruzada
+credit.trainCtrl.cv <- trainControl(
+  method = "cv",       # Validación cruzada estándar
+  number = 10,         # 10 pliegues
+  classProbs = TRUE,  
+  summaryFunction = twoClassSummary
+)
+set.seed(2)
+modelo_cv <- train(
+  x = credit.Datos.gbm.imp.Train[, credit.Vars.Entrada.Usadas],
+  y = credit.Datos.gbm.imp.Train[[credit.Var.Salida.Usada]],
+  method = "gbm",
+  trControl = credit.trainCtrl.cv,
+  tuneGrid = data.frame(
+    n.trees = 500,
+    interaction.depth = 5,
+    shrinkage = 0.01,
+    n.minobsinnode = 10
+  ),
+  metric = "ROC",
+  verbose = FALSE
+)
+
+# Evaluación con ambos modelos
+pred_cv <- predict(modelo_cv, credit.Datos.gbm.imp.Test)
+conf_mat_cv <- confusionMatrix(pred_cv, credit.Datos.gbm.imp.Test[[credit.Var.Salida.Usada]])
+accuracy_cv <- conf_mat_cv$overall["Accuracy"]
+
+# Mostrar resultados
+cat("Porcentaje de Acierto (Validación Cruzada):", round(accuracy_cv * 100, 2), "%\n")
+```
+
+Obtenemos el mismo rendimiento. Explicación:
+
+GBM es un modelo que automáticamente reduce la importancia de variables irrelevantes, por lo que eliminarlas manualmente puede no afectar significativamente.
+
+#### 1.13. Conclusión:
+
+Terminamos este entrenamiento habiendo probado muchísimas configuraciones de preprocesado, eligiendo la más prometedora, y buscando los parámetros idóneos que debería de tener nuestro modelo para obtener buenas predicciones. Siendo nuestro porcentaje de acierto experimental: 85.4%.
