@@ -8,11 +8,6 @@ date: "2024-11-20"
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
-
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
 
 ```{r cars}
 #setwd("/home/manu/FIUM/TERCERO/PrimerCuatri/AC/Proyecto/PracticasAC")
@@ -46,6 +41,14 @@ credit.Datos.Test$Origen <- "test"
 
 # Combinar los conjuntos
 combined_credit <- rbind(credit.Datos.Train, credit.Datos.Test)
+
+# Librerias usadas durante la practica
+library(caret)
+library(randomForest)
+library(nnet)
+library(pROC)
+
+
 ```
 
 ```{r}
@@ -952,3 +955,277 @@ porcentaje_acierto <- matriz_confusion$overall["Accuracy"] * 100
 print(paste("Porcentaje de acierto:", round(porcentaje_acierto, 2), "%"))
 
 ```
+
+
+
+
+
+
+# Random Forest
+
+
+
+
+Vamos a comenzar a entrenar modelos random forest. Para ellos vamos primero a ver que hiperparametros nos ofrece caret de forma directa para usar.
+
+```{r}
+modelLookup(("rf"))
+```
+En este caso solo disponemos de un hiperparametro, pero random forest tiene mas hiperparametros como puede ser ntree que es el numero de arboles generado el cual lo fijaremos en 1000 en todos los train crontrol para darle estabilidad al modelo. Para mtry creamos un grid con distintos valores para este hiperparametro.
+
+```{r}
+rf.grid <- expand.grid(mtry = c(1, 2, 3, 10, 15))
+```
+
+
+## Configuraciones de trainControl
+
+Vamos usar trainControl() para configurar procesos del entrenamiento donde vamos a poner una configuracion habitual recomendada por el caret la cual consiste en cross validacion cruzada de 10 plieges y 3 repeticiones.
+
+
+```{r}
+rf.trainControl.3cv10.twoSummary.roc <- trainControl(
+  method = "repeatedcv",
+  number = 10,
+  repeats = 3,
+  # No mostramos el proceso porque seria muy extenso
+  verboseIter = FALSE,
+  # Métricas adicionales como ROC (para clasificación binaria)
+  summaryFunction = twoClassSummary,
+  # Necesario si queremos usar roc
+  classProbs = TRUE,
+  # Guardamos todo para hacer diagramas
+  returnResamp = "all"
+)
+```
+
+
+## Preprocesado de datos para el modelo
+
+### Imputando valores NA
+
+
+El modelo random forest no permite valores NA por lo que usaremos la base de datos cuyos valores NA estan imputados, comprobamos que efectivamente no existe valores NA en la base de datos que vamos a usar.
+
+```{r}
+any(is.na(credit.Datos.Train.imp))
+```
+
+Por lo demas nuestra base de datos a priori es apta para el entrenamiento
+
+```{r}
+
+varObjetivo <- "V16" # Cambia esto por tu variable de salida
+varsPredictoras <- setdiff(names(credit.Datos.Train.imp), varObjetivo)
+```
+
+### Eliminando valores NA
+
+Otra manera de preprocesar los datos para el random forest es eliminando los valores NA, para ello usamos los siguiente.
+
+```{r}
+credit.Datos.Train.EliminadoNA <- na.omit(credit.Datos.Train)
+credit.Datos.Test.EliminadoNA <- na.omit(credit.Datos.Test)
+```
+
+```{r}
+
+varObjetivo <- "V16" # Cambia esto por tu variable de salida
+varsPredictoras <- setdiff(names(credit.Datos.Train.EliminadoNA), varObjetivo)
+```
+
+## Entrenamiento
+
+### Imputando datos NA
+
+Ahora procedemos a entrenar nuestro primer modelo de random forest
+
+
+
+```{r}
+set.seed(123)
+rf.modelo.3cv10.twoSummary.roc <- train(
+  x = credit.Datos.Train.imp[varsPredictoras],
+  y = credit.Datos.Train.imp[[varObjetivo]],
+  method = "rf", 
+  metric = "ROC",
+  trControl = rf.trainControl.3cv10.twoSummary.roc,
+  tuneGrid = rf.grid,
+  ntree = 1000
+)
+
+print(rf.modelo.3cv10.twoSummary.roc)
+plot(rf.modelo.3cv10.twoSummary.roc)
+```
+
+
+### Eliminando datos NA
+
+
+```{r}
+set.seed(123)
+rf.modelo.3cv10.twoSummary.roc <- train(
+  x = credit.Datos.Train.EliminadoNA[varsPredictoras],
+  y = credit.Datos.Train.EliminadoNA[[varObjetivo]],
+  method = "rf", 
+  metric = "ROC",
+  trControl = rf.trainControl.3cv10.twoSummary.roc,
+  tuneGrid = rf.grid,
+  ntree = 1000
+)
+
+print(rf.modelo.3cv10.twoSummary.roc)
+plot(rf.modelo.3cv10.twoSummary.roc)
+```
+
+
+## Test de modelos
+
+```{r}
+
+# 9. Guardar el modelo entrenado
+#saveRDS(modelo_rf, "modelo_rf.rds")
+
+# 10. Evaluación del modelo en el conjunto de prueba
+# Predicción en el conjunto de prueba
+predicciones <- predict(rf.modelo.3cv10.twoSummary.roc, newdata = credit.Datos.Test.imp[varsPredictoras])
+
+# Generar matriz de confusión
+confusionMatrix(
+  data = predicciones,
+  reference = credit.Datos.Test[[varObjetivo]],
+  positive = "aprobada" # Cambia esto por la clase objetivo positiva
+)
+
+
+```
+
+
+
+## Comparativa de modelos
+
+```{r}
+
+data.frame(Model = c("rf.modelo.3cv10.kappa", "rf.modelo.3cv10.twoSummary.roc", "rf.modelo.3cv10.multiClassSummary"), Accuracy = c(max(rf.modelo.3cv10.kappa$results$Accuracy), max(rf.modelo.3cv10.twoSummary.roc$results$Accuracy), max(rf.modelo.3cv10.multiClassSummary$results$Accuracy)))
+
+```
+
+
+
+## Redes neuronales
+
+Pasamos ahroa a entrenar el modelo de redes neuronales, primero vemis los posibkes hiperparametros disponbles que tiene:
+
+```{r}
+modelLookup(("nnet"))
+```
+## Entrenamiento
+
+
+```{r}
+nnetGrid <- expand.grid(
+  size = c(1, 3, 5, 7),   # Número de nodos en la capa oculta
+  decay = c(0, 0.01, 0.1, 0.2) # Parámetro de regularización
+)
+```
+
+
+
+
+
+
+```{r}
+nnet.trainControl <- trainControl(
+  method = "repeatedcv",
+  number = 10,
+  repeats = 3,
+  verboseIter = FALSE,
+  classProbs = TRUE,           # Probabilidades de clase (para clasificación)
+  summaryFunction = twoClassSummary, # Métricas adicionales como ROC
+  returnResamp = "all" # Guardamos todo para hacer diagramas
+)
+```
+
+
+
+```{r}
+set.seed(123)
+nnet.train <- train(
+  x = credit.Datos.Train.imp[varsPredictoras],
+  y = credit.Datos.Train.imp[[varObjetivo]],
+  method = "nnet",
+  trControl = nnet.trainControl,
+  tuneGrid = nnetGrid,               # Grid de hiperparámetros
+  trace = FALSE,                            # Evita imprimir mensajes internos de nnet
+  maxit = 200                               # Número máximo de iteraciones
+)
+
+print(nnet.train)
+plot(nnet.train)
+
+```
+
+
+
+```{r}
+
+
+
+# 7. Evaluar el modelo en el conjunto de prueba
+# Predicción en el conjunto de prueba
+predicciones_nnet <- predict(modelo_nnet, newdata = credit.Datos.Test[vars_predictoras])
+
+# Matriz de confusión
+matrizConfusionNNET <- confusionMatrix(
+  data = predicciones_nnet,
+  reference = credit.Datos.Test[[var_objetivo]],
+  positive = "aprobada" # Cambia esto por el nivel positivo correcto
+)
+
+
+
+# Extraer y mostrar el porcentaje de aciertos (Accuracy)
+print(paste("Porcentaje de aciertos: ", round(matrizConfusionNNET$overall["Accuracy"] * 100, 2), "%", sep = ""))
+
+```
+
+
+
+
+# Postprocesado rf
+
+
+```{r}
+
+varImp(modelo_rf)
+```
+
+La variable V7 la podriamos eliminar para el modelo ya que apenas tiene impacto
+
+
+```{r}
+predictors(modelo_rf$finalModel)
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
