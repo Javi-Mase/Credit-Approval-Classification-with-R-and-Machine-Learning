@@ -1029,7 +1029,7 @@ Según hemos podido encontrar en esta página web: <https://www.619.io/blog/2017
 
 "It is a bit disappointing to observe no improvement after reducing the number of features using PCA; and even worse, we get some noticeable degradation of the baseline result. Sometimes things like that happen… A more thorough feature tinkering might help here to reduce the number of features and achieve better performance!"
 
-#### Eliminar variables no importantes:
+### Eliminar variables no importantes:
 
 Podemos probar a eliminar las columnas que no se utilizan. Primero debemos de comprobar cuantas se utlizan:
 
@@ -1088,11 +1088,11 @@ Obtenemos el mismo rendimiento. Explicación:
 
 GBM es un modelo que automáticamente reduce la importancia de variables irrelevantes, por lo que eliminarlas manualmente puede no afectar significativamente.
 
-#### Conclusión:
+### Conclusión:
 
 Terminamos este entrenamiento habiendo probado muchísimas configuraciones de preprocesado, eligiendo la más prometedora, y buscando los parámetros idóneos que debería de tener nuestro modelo para obtener buenas predicciones. Siendo nuestro porcentaje de acierto experimental: 85.4%.
 
-### SVM
+## SVM
 
 En primer lugar vamos a tratar de buscar información a cerca de las características del modelo. Gran parte de la informacion obtenida es de la siguiente pagina.\
 [https://medium.com/\@vdeshpande551/understanding-the-inner-workings-of-svm-from-data-preprocessing-to-model-deployment-cdc9d72a2d34](https://medium.com/@vdeshpande551/understanding-the-inner-workings-of-svm-from-data-preprocessing-to-model-deployment-cdc9d72a2d34){.uri}\
@@ -1103,7 +1103,7 @@ credit.Datos.Train.Svm <- credit.Datos.Train
 credit.Datos.Test.Svm <- credit.Datos.Test
 ```
 
-#### Transformacion de distribuciones asimetricas
+### Transformacion de distribuciones asimetricas
 
 En primer lugar vamos a comenzar tratando las distribuciones asimetricas. Para ello vamos a usar **BoxCox** cuando los datos sean positivos y continuos y las distribuciones esten sesgadas a la derecha. Yeo-Johnson podemos usarla cuando los datos sean positivos, negativos o ceros y ademas funciona bien con asimetrias de ambos tipos. Por último expoTrans la emplearemos cuando los datos tengan una asimetria extremadamente sesgada.
 
@@ -1229,14 +1229,14 @@ Si queremos que no aplique comentar lo siguiente:
 #credti.datos.Test.Svm <- credit.Datos.Test.Asimetricas
 ```
 
-#### Normalización
+### Normalización
 
 ```{r}
 credit.Var.Salida.Usada <- c("V16")
 credit.Var.Entrada.Usadas <- setdiff(names(credit.Datos.Train.Svm),credit.Var.Salida.Usada)
 ```
 
-##### Usando Center-Scale
+#### Usando Center-Scale
 
 ```{r}
 credit.preProc.CS.Mod<-preProcess(credit.Datos.Train.Svm[credit.Var.Entrada.Usadas],
@@ -1250,7 +1250,7 @@ credit.Datos.Test.CS <- predict(credit.preProc.CS.Mod,credit.Datos.Test.Svm)
 #credit.Datos.Test.Svm <- credit.Datos.Test.CS
 ```
 
-##### Usando Range
+#### Usando Range
 
 ```{r}
 credit.preProc.CS.Mod<-preProcess(credit.Datos.Train.Svm[credit.Var.Entrada.Usadas],
@@ -1264,7 +1264,7 @@ credit.Datos.Test.Rg <- predict(credit.preProc.CS.Mod,credit.Datos.Test.Svm)
 #credit.Datos.Test.Svm <- credit.Datos.Test.Rg
 ```
 
-#### Dummy
+### Dummy
 
 Esta transformación de los datos debera emplearse siempre para el correcto funcionamiento del modelo.
 
@@ -1295,7 +1295,7 @@ credit.Datos.Test.Svm <- credit.Datos.Test.Dummies
 
 ```
 
-#### Eliminar variables con poca varianza
+### Eliminar variables con poca varianza
 
 Este paso también debe realizarse en todos los prepocesados que apliquemos.
 
@@ -1306,9 +1306,9 @@ credit.Datos.Train.Svm <- credit.Datos.Train.Svm[, -nzv.Train]
 credit.Datos.Test.Svm <- credit.Datos.Test.Svm[, names(credit.Datos.Train.Svm)]
 ```
 
-#### Transformaciones de relaciones entre variables
+### Transformaciones de relaciones entre variables
 
-##### PCA
+#### PCA
 
 ```{r}
 credit.PreProc.Pca.Mod <- preProcess(credit.Datos.Train.Svm, method = "pca", thresh = 0.95)  # 95% de la varianza explicada
@@ -1322,7 +1322,7 @@ credit.Datos.Train.Svm <- credit.Datos.Train.Pca
 credit.Datos.Test.Svm <- credit.Datos.Test.Pca
 ```
 
-##### ICA
+#### ICA
 
 ```{r}
 credit.PreProc.Ica.Mod <- preProcess(credit.Datos.Train.Svm, method = "ica", n.comp = 10)  # 10 componentes independientes
@@ -1336,7 +1336,7 @@ credit.Datos.Test.Ica <- predict(credit.PreProc.Ica.Mod, credit.Datos.Test.Svm)
 #credit.Datos.Test.Svm <- credit.Datos.Test.Ica
 ```
 
-#### Entrenamiento
+### Entrenamiento
 
 ```{r}
 set.seed(1234)
@@ -1375,7 +1375,7 @@ porcentaje_acierto <- matriz_confusion$overall["Accuracy"] * 100
 print(paste("Porcentaje de acierto:", round(porcentaje_acierto, 2), "%"))
 ```
 
-#### Hiper-parámetros
+### Hiper-parámetros
 
 Tras probar 20 combinaciones de hiper-parametros vamos a cuales han sido los que finalmente se han elegido para el modelo final.
 
@@ -1393,7 +1393,7 @@ El parametro sigma, al igual que C cuanto mayor es su valor más cercanos serán
 credit.modelo.svm$bestTune
 ```
 
-#### **¿Con qué configuración hemos hecho los entrenamientos?**
+### **¿Con qué configuración hemos hecho los entrenamientos?**
 
 Como ya hemos dicho para que el modelo SVM funcione es necesario haber transformado las variables categoricas y haber eliminado las variables de poca varianza, es por esto q a esa configuracion la llamaremos 'Básica'.
 
@@ -1431,7 +1431,7 @@ Como ya hemos dicho para que el modelo SVM funcione es necesario haber transform
 
 Tras las ejecuciones consideramos que para los datos para el modelo SVM haremos dummys, eliminaremos las variables con poca varianza y aplicaremos PCA.
 
-#### Submuestreo con clases desvalanceadas
+### Submuestreo con clases desvalanceadas
 
 Para ver si nuestro modelo mejora vamos a tratar las clases desvalanceadas en el conjunto de los datos de entrenamiento.
 
@@ -1440,7 +1440,7 @@ credit.Var.Salida.Usada <- c("V16")
 credit.Vars.Entrada.Usadas <- setdiff(names(credit.Datos.Train.Svm),credit.Var.Salida.Usada)
 ```
 
-##### down-sampling:
+#### down-sampling:
 
 Consiste en reducir el n´umero de ejemplos de las clases m´as frecuentes para igualar la clase menos frecuente.
 
@@ -1452,7 +1452,7 @@ credit.Datos.Train.svm.downsmpld<-downSample(x=credit.Datos.Train.Svm[credit.Var
 credit.Datos.Test.svm.downsmpld <- credit.Datos.Test.Svm
 ```
 
-##### up-sampling:
+#### up-sampling:
 
 En este caso hace lo contrario, remuestrea (con reemplazamiento) la clase minoritaria para igualarla a la mayoritaria (repite varios datos).
 
@@ -1512,7 +1512,7 @@ porcentaje_acierto <- matriz_confusion$overall["Accuracy"] * 100
 print(paste("Porcentaje de acierto:", round(porcentaje_acierto, 2), "%"))
 ```
 
-#### Eliminación de variables
+### Eliminación de variables
 
 ```{r}
 #Ver importancia de las variables de entrada
@@ -1556,7 +1556,7 @@ print(paste("Porcentaje de acierto:", round(porcentaje_acierto, 2), "%"))
 
 La eliminacion de esta variable, a pesar de que no tiene imporatancia en el modelo final enternado no mejora el rendiminto.
 
-#### Conclusión
+### Conclusión
 
 Para la configuración de nuestro modelo SVM, el mejor resultado lo obtienen los datos tras haber hecho Dummys, eliminado las variables con poca varianza y habiendo aplicado PCA. Tras esto eliminamos PC5
 
@@ -1566,7 +1566,7 @@ El modelo final sería:
 print(credit.modelo.svm.Reduc)
 ```
 
-### KNN
+## KNN
 
 K-Nearest Neighbors es un algoritmo que clasifica o predice en función de los k vecinos mas cercanos. En nuestro caso, nos interesa la clasificación. Debido a como funciona KNN será fundamental la normalización de los datos asi como transformar las variables categoricas en dummys. No nos centraremos tanto en la reducción de los datos y por último realizaremos pruebas eliminando variables poco importantes asi como tratar las clases desvalanceadas o los sesgos.
 
@@ -1584,9 +1584,9 @@ credit.Var.Salida.Usada <- c("V16")
 credit.Var.Entrada.Usadas <- setdiff(names(credit.Datos.Train.Knn),credit.Var.Salida.Usada)
 ```
 
-#### Normalización
+### Normalización
 
-##### Center-Scale
+#### Center-Scale
 
 ```{r}
 credit.preProc.CS.Mod<-preProcess(credit.Datos.Train.Knn[credit.Var.Entrada.Usadas],
@@ -1600,7 +1600,7 @@ credit.Datos.Train.Knn <- credit.Datos.Train.CS
 credit.Datos.Test.Knn <- credit.Datos.Test.CS
 ```
 
-##### Range
+#### Range
 
 ```{r}
 credit.preProc.CS.Mod<-preProcess(credit.Datos.Train.Knn[credit.Var.Entrada.Usadas],
@@ -1614,7 +1614,7 @@ credit.Datos.Test.Rg <- predict(credit.preProc.CS.Mod,credit.Datos.Test.Knn)
 #credit.Datos.Test.Knn <- credit.Datos.Test.Rg
 ```
 
-#### Dummys
+### Dummys
 
 ```{r}
 # Definir la variable de salida y las variables de entrada
@@ -1640,7 +1640,7 @@ credit.Datos.Train.Knn <- credit.Datos.Train.Dummies
 credit.Datos.Test.Knn <- credit.Datos.Test.Dummies
 ```
 
-#### Eliminar variables con poca varianza
+### Eliminar variables con poca varianza
 
 ```{r}
 nzv.Train <- nearZeroVar(credit.Datos.Train.Knn)
@@ -1654,7 +1654,7 @@ credit.Datos.Test.Vari <- credit.Datos.Test.Knn[, names(credit.Datos.Train.Knn)]
 #credit.Datos.Test.Knn <- credit.Datos.Test.Vari
 ```
 
-#### Entrenamiento
+### Entrenamiento
 
 ```{r}
 # Configurar el modelo KNN
@@ -1694,7 +1694,7 @@ porcentaje_acierto <- matriz_confusion$overall["Accuracy"] * 100
 print(paste("Porcentaje de acierto:", round(porcentaje_acierto, 2), "%"))
 ```
 
-#### Hiper-Parametros
+### Hiper-Parametros
 
 Tras probar 20 combinaciones de hiper-parametros vamos a cuales han sido los que finalmente se han elegido para el modelo final.
 
@@ -1706,7 +1706,7 @@ modelLookup(("knn"))
 credit.modelo.knn$bestTune
 ```
 
-#### **¿Con qué configuración hemos hecho los entrenamientos?**
+### **¿Con qué configuración hemos hecho los entrenamientos?**
 
 +------------------------------------------+---------------+
 | Configuración                            | Acierto       |
@@ -1744,7 +1744,7 @@ credit.modelo.knn$bestTune
 |                                          | ```           |
 +------------------------------------------+---------------+
 
-#### Submuestreo con clases desvalanceadas
+### Submuestreo con clases desvalanceadas
 
 Para ver si nuestro modelo mejora vamos a tratar las clases desvalanceadas en el conjunto de los datos de entrenamiento.
 
@@ -1753,7 +1753,7 @@ credit.Var.Salida.Usada <- c("V16")
 credit.Vars.Entrada.Usadas <- setdiff(names(credit.Datos.Train.Knn),credit.Var.Salida.Usada)
 ```
 
-##### down-sampling:
+#### down-sampling:
 
 Consiste en reducir el n´umero de ejemplos de las clases m´as frecuentes para igualar la clase menos frecuente.
 
@@ -1765,7 +1765,7 @@ credit.Datos.Train.knn.downsmpld<-downSample(x=credit.Datos.Train.Knn[credit.Var
 credit.Datos.Test.knn.downsmpld <- credit.Datos.Test.Knn
 ```
 
-##### up-sampling:
+#### up-sampling:
 
 En este caso hace lo contrario, remuestrea (con reemplazamiento) la clase minoritaria para igualarla a la mayoritaria (repite varios datos).
 
@@ -1825,7 +1825,7 @@ porcentaje_acierto <- matriz_confusion$overall["Accuracy"] * 100
 print(paste("Porcentaje de acierto:", round(porcentaje_acierto, 2), "%"))
 ```
 
-#### Eliminación de variables
+### Eliminación de variables
 
 ```{r}
 #Ver importancia de las variables de entrada
@@ -1836,10 +1836,9 @@ varImp(credit.modelo.knn)
 predictors(credit.modelo.knn$finalModel)
 ```
 
-#### Conclusión
+### Conclusión
 
-
-## **Random Forest**
+## Random Forest
 
 El Random Forest es un algoritmo de aprendizaje automático basado en un conjunto de árboles de decisión. Es especialmente util para tareas de clasificacion por lo tanto es un buen candidato para usarlo en esta tarea.
 
@@ -1857,8 +1856,7 @@ Creamos el grid para el hiperparametros mtry.
 rf.grid <- expand.grid(mtry = c(2, 4, 6, 8))
 ```
 
-
-## Configuraciones de trainControl
+### Configuraciones de trainControl
 
 Vamos usar trainControl() para configurar procesos del entrenamiento donde vamos a poner una configuracion habitual recomendada por el caret la cual consiste en cross validacion cruzada de 10 plieges y 3 repeticiones. Ademas vamos a usar twoClassSummary junto con ROC ya que proporciona métricas robustas que evalúan el desempeño del modelo considerando todos los posibles umbrales de decisión. ROC es especialmente útil para comparar modelos, ya que mide la capacidad de separar correctamente las clases positivas y negativas, independientemente del balanceo entre ellas.
 
@@ -1878,9 +1876,9 @@ rf.trainControl.3cv10.twoSummary.roc <- trainControl(
 )
 ```
 
-## Preprocesado de datos para el modelo
+### Preprocesado de datos para el modelo
 
-### Imputando valores NA
+#### Imputando valores NA
 
 El modelo random forest no permite valores NA por lo que usaremos la base de datos cuyos valores NA estan imputados, comprobamos que efectivamente no existe valores NA en la base de datos que vamos a usar.
 
@@ -1896,7 +1894,7 @@ varObjetivo <- "V16" # Cambia esto por tu variable de salida
 varsPredictoras <- setdiff(names(credit.Datos.Train.imp), varObjetivo)
 ```
 
-### Eliminando valores NA
+#### Eliminando valores NA
 
 Otra manera de preprocesar los datos para el random forest es eliminando los valores NA, para ello usamos los siguiente.
 
@@ -1911,9 +1909,9 @@ varObjetivo <- "V16" # Cambia esto por tu variable de salida
 varsPredictoras <- setdiff(names(credit.Datos.Train.EliminadoNA), varObjetivo)
 ```
 
-## Entrenamiento
+### Entrenamiento
 
-### Imputando datos NA
+#### Imputando datos NA
 
 Ahora procedemos a entrenar nuestro primer modelo de random forest
 
@@ -1957,6 +1955,7 @@ rf.modelo.3cv10.twoSummary.roc.1000 <- train(
 
 print(rf.modelo.3cv10.twoSummary.roc.100$results$ROC[4])
 ```
+
 Mostramos los resultado.
 
 ```{r}
@@ -1987,9 +1986,7 @@ ggplot(resultados_df, aes(x = as.factor(mtry), y = ROC, fill = as.factor(ntree))
   coord_cartesian(ylim = c(0.9, 1))  # Ajustar el rango del eje Y
 ```
 
-
-
-### Eliminando datos NA
+#### Eliminando datos NA
 
 Repetimos el mismo codigo pero esta vez para la base con los datos NA eliminados.
 
@@ -2062,7 +2059,7 @@ ggplot(resultados_df, aes(x = as.factor(mtry), y = ROC, fill = as.factor(ntree))
   coord_cartesian(ylim = c(0.9, 1))  # Ajustar el rango del eje Y
 ```
 
-## Test de modelos
+### Test de modelos
 
 Probamos los distintos modelos que hemos entrenado para ver cual tiene mejor prediccion
 
@@ -2087,7 +2084,8 @@ prediccion.rf.modelo.3cv10.twoSummary.roc.1000.eliminadoNA <- predict(rf.modelo.
 
 
 ```
-## Comparativa de modelos
+
+### Comparativa de modelos
 
 Vemos los resultados
 
@@ -2167,10 +2165,9 @@ ggplot(resultados, aes(x = as.factor(Numero_Arboles), y = Accuracy, fill = Tipo_
 
 ```
 
-## Postprocesado rf
+### Postprocesado de datos
 
 ```{r}
-
 varImp(modelo_rf)
 ```
 
@@ -2180,7 +2177,6 @@ La variable V7 la podriamos eliminar para el modelo ya que apenas tiene impacto
 predictors(modelo_rf$finalModel)
 
 ```
-
 
 ## Redes neuronales
 
@@ -2194,8 +2190,8 @@ Caret no sofrece dos hiperparametros facilmente accesibles que son el size refer
 
 ```{r}
 nnetGrid <- expand.grid(
-  size = c(1, 3, 5, 7),
-  decay = c(0, 0.01, 0.1, 0.2)
+  size = c(1, 3, 5, 7, 10),
+  decay = c(0.01, 0.1, 0.5, 1, 2)
 )
 ```
 
@@ -2217,49 +2213,209 @@ nnet.trainControl <- trainControl(
 
 ### Preprocesado
 
+Nnet no puede maneja valores NA por lo que usaremos la base de datos donde los valores NA estan imputados.
 
-## Entrenamiento
+#### Normalización
 
+nnet es sensible a las magnitudes de las variables. Si los predictores tienen diferentes escalas (por ejemplo, ingresos en miles frente a edades en decenas), esto puede afectar negativamente al entrenamiento.
+
+#### Dummy
+
+nnet requiere que las variables categóricas se representen como variables dummy (una columna por cada nivel de la variable).
+
+
+#### Eliminación de Predictores Irrelevantes o Redundantes
+
+Variables altamente correlacionadas o con baja varianza pueden aumentar el tiempo de entrenamiento y provocar sobreajuste.
+
+Todos estos preprocesados anteriores ya han sido hechos y estan en la base de datos credit.Datos.Train.Knn por lo que la reutolizamos para evitar repeticion de codigo.
+
+### Entrenamiento
+
+Procedemos con el entrenamiento
+
+```{r}
+varObjetivo <- "V16"
+varsPredictoras <- setdiff(names(credit.Datos.Train.Knn), varObjetivo)
+```
 
 
 
 ```{r}
 set.seed(123)
-nnet.train <- train(
-  x = credit.Datos.Train.imp[varsPredictoras],
-  y = credit.Datos.Train.imp[[varObjetivo]],
+nnet.train.100 <- train(
+  x = credit.Datos.Train.Knn[varsPredictoras],
+  y = credit.Datos.Train.Knn[[varObjetivo]],
   method = "nnet",
   trControl = nnet.trainControl,
-  tuneGrid = nnetGrid,               # Grid de hiperparámetros
-  trace = FALSE,                            # Evita imprimir mensajes internos de nnet
-  maxit = 200                               # Número máximo de iteraciones
+  tuneGrid = nnetGrid,
+  trace = FALSE,
+  maxit = 100
 )
 
-print(nnet.train)
-plot(nnet.train)
+set.seed(123)
+nnet.train.300 <- train(
+  x = credit.Datos.Train.Knn[varsPredictoras],
+  y = credit.Datos.Train.Knn[[varObjetivo]],
+  method = "nnet",
+  trControl = nnet.trainControl,
+  tuneGrid = nnetGrid,
+  trace = FALSE,
+  maxit = 300
+)
+
+set.seed(123)
+nnet.train.500 <- train(
+  x = credit.Datos.Train.Knn[varsPredictoras],
+  y = credit.Datos.Train.Knn[[varObjetivo]],
+  method = "nnet",
+  trControl = nnet.trainControl,
+  tuneGrid = nnetGrid,
+  trace = FALSE,
+  maxit = 500
+)
+
 
 ```
 
 ```{r}
+# print(nnet.train.100)
+# print(nnet.train.300)
+# print(nnet.train.500)
+
+# Encontrar el índice del máximo valor de ROC
+max_index100 <- which.max(nnet.train.100$results$ROC)
+
+# Obtener los valores correspondientes
+max_roc100 <- nnet.train.100$results$ROC[max_index100]
+corresponding_size100 <- nnet.train.100$results$size[max_index100]
+corresponding_decay100 <- nnet.train.100$results$decay[max_index100]
+
+# Imprimir los resultados
+cat("El valor más alto de ROC para 100 iteraciones es:", max_roc100, "\n")
+cat("Corresponde a size:", corresponding_size100, "y decay:", corresponding_decay100, "\n")
+
+# Encontrar el índice del máximo valor de ROC
+max_index300 <- which.max(nnet.train.300$results$ROC)
+
+# Obtener los valores correspondientes
+max_roc300 <- nnet.train.300$results$ROC[max_index300]
+corresponding_size300 <- nnet.train.300$results$size[max_index300]
+corresponding_decay300 <- nnet.train.300$results$decay[max_index300]
+
+# Imprimir los resultados
+cat("El valor más alto de ROC para 300 iteraciones es:", max_roc300, "\n")
+cat("Corresponde a size:", corresponding_size300, "y decay:", corresponding_decay300, "\n")
+
+# Encontrar el índice del máximo valor de ROC
+max_index500 <- which.max(nnet.train.500$results$ROC)
+
+# Obtener los valores correspondientes
+max_roc500 <- nnet.train.500$results$ROC[max_index500]
+corresponding_size500 <- nnet.train.500$results$size[max_index500]
+corresponding_decay500 <- nnet.train.500$results$decay[max_index500]
+
+# Imprimir los resultados
+cat("El valor más alto de ROC para 500 iteraciones es:", max_roc500, "\n")
+cat("Corresponde a size:", corresponding_size500, "y decay:", corresponding_decay500, "\n")
+
+```
+
+### Test de modelos
+
+Probamos los distintos modelos que hemos entrenado para ver cual tiene mejor prediccion
+
+```{r}
+
+# 9. Guardar el modelo entrenado
+#saveRDS(modelo_rf, "modelo_rf.rds")
 
 
+prediccion.nnet.100 <- predict(nnet.train.100, newdata = credit.Datos.Test.Knn[varsPredictoras])
 
-# 7. Evaluar el modelo en el conjunto de prueba
-# Predicción en el conjunto de prueba
-predicciones_nnet <- predict(modelo_nnet, newdata = credit.Datos.Test[vars_predictoras])
+prediccion.nnet.300 <- predict(nnet.train.300, newdata = credit.Datos.Test.Knn[varsPredictoras])
 
-# Matriz de confusión
-matrizConfusionNNET <- confusionMatrix(
-  data = predicciones_nnet,
-  reference = credit.Datos.Test[[var_objetivo]],
-  positive = "aprobada" # Cambia esto por el nivel positivo correcto
+prediccion.nnet.500 <- predict(nnet.train.500, newdata = credit.Datos.Test.Knn[varsPredictoras])
+
+```
+
+### Comparativa de modelos
+
+Vemos los resultados
+
+```{r}
+# Generar matriz de confusión
+matrizConfusion.nnet.100 <- confusionMatrix(
+  data = prediccion.nnet.100,
+  reference = credit.Datos.Test[[varObjetivo]],
+  positive = "aprobada" # Cambia esto por la clase objetivo positiva
+)
+
+matrizConfusion.nnet.300 <- confusionMatrix(
+  data = prediccion.nnet.300,
+  reference = credit.Datos.Test[[varObjetivo]],
+  positive = "aprobada" # Cambia esto por la clase objetivo positiva
+)
+
+matrizConfusion.nnet.500 <- confusionMatrix(
+  data = prediccion.nnet.500,
+  reference = credit.Datos.Test[[varObjetivo]],
+  positive = "aprobada" # Cambia esto por la clase objetivo positiva
+)
+
+```
+
+
+```{r}
+
+# Extraer Accuracy de las matrices de confusión
+accuracy_values <- c(
+  matrizConfusion.nnet.100$overall["Accuracy"] * 100,
+  matrizConfusion.nnet.300$overall["Accuracy"] * 100,
+  matrizConfusion.nnet.500$overall["Accuracy"] * 100
+)
+
+# Crear un data frame con los resultados
+resultados <- data.frame(
+  Modelo = c("100 iteraciones", "300 iteraciones", "500 iteraciones"),
+  Accuracy = accuracy_values
 )
 
 
-
-# Extraer y mostrar el porcentaje de aciertos (Accuracy)
-print(paste("Porcentaje de aciertos: ", round(matrizConfusionNNET$overall["Accuracy"] * 100, 2), "%", sep = ""))
+# Crear el histograma
+ggplot(resultados, aes(x = Modelo, y = Accuracy, fill = Modelo)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  geom_text(aes(label = round(Accuracy, 2)), vjust = -0.5) + # Agregar etiquetas con valores
+  labs(
+    title = "Accuracy de Modelos con Diferentes Iteraciones",
+    x = "Modelo",
+    y = "Accuracy (%)"
+  ) +
+  scale_fill_manual(values = c("100 iteraciones" = "blue", "300 iteraciones" = "green", "500 iteraciones" = "orange")) +
+  theme_minimal() +
+  theme(legend.position = "none") +
+  coord_cartesian(ylim = c(70, 100))
 
 ```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
