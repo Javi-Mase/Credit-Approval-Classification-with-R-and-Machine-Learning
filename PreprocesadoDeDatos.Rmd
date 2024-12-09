@@ -1853,7 +1853,7 @@ En este caso solo disponemos de un hiperparámetro gestionado por caret, esto si
 Creamos el grid para el hiperparametros mtry.
 
 ```{r}
-rf.grid <- expand.grid(mtry = c(1, 2, 6, 8, 10))
+rf.grid <- expand.grid(mtry = c(1, 2, 6, 10))
 ```
 
 ### Configuraciones de trainControl
@@ -2009,7 +2009,7 @@ Vemos que probablemente el modelo se comporta mejor con valores pequeños de mtr
 ```{r}
 # Crear un data.frame con los resultados
 resultados_df <- data.frame(
-  mtry = rep(c(1, 2, 6, 8, 10), times = 3), # Repetimos 4 valores de mtry, una vez por modelo
+  mtry = rep(c(1, 2, 6, 10), times = 3), # Repetimos 4 valores de mtry, una vez por modelo
   ntree = rep(c(100, 500, 1000), each = 4), # 3 modelos, cada uno con 4 mtry
   ROC = c(
     rf.modelo.3cv10.twoSummary.roc.100$results$ROC[1:4], 
@@ -2276,7 +2276,7 @@ Vemos que la V7 tiene un impacto infimos en todos los modelos por lo que vamos a
 predictors(modelo_rf$finalModel)
 ```
 
-### Conclusión
+
 
 ## Redes neuronales
 
