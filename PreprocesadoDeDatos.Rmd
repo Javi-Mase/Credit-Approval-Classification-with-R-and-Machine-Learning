@@ -2321,7 +2321,7 @@ varImp(rf.modelo.3cv10.twoSummary.roc.1000.eliminadoNA)
 Vemos que la V7 tiene un impacto infimos en todos los modelos por lo que vamos a eliminarla. También se podria considerar la eliminación de la variable de empleados pero hay algunos modelos que si que han hecho un uso considerable para no eliminarla.
 
 ```{r}
-predictors(modelo_rf$finalModel)
+predictors(rf.modelo.3cv10.twoSummary.roc.100$finalModel)
 ```
 
 
