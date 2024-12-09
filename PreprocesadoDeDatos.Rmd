@@ -1842,18 +1842,18 @@ predictors(credit.modelo.knn$finalModel)
 
 El Random Forest es un algoritmo de aprendizaje automático basado en un conjunto de árboles de decisión. Es especialmente util para tareas de clasificacion por lo tanto es un buen candidato para usarlo en esta tarea.
 
-Para ellos vamos primero a ver que hiperparametros nos ofrece caret de forma directa para usar.
+Para empezar vamos a ver que hiperparametros nos ofrece caret del random forest..
 
 ```{r}
 modelLookup(("rf"))
 ```
 
-En este caso solo disponemos de un hiperparametro gestionado por caret, esto significa que en tuneGrid no podemo sponer mas hiperparametros de random forest porque caret no lo sabe gestionar por lo que tendremos que introducirlos manualmente en el train(). Dentro de los demas hiperparamentros existentes vamos a probar tambien ntree que es el numero de arboles de decision, para ello crearemos un bucle y entrenaremos modelos segun para cada numero de arboles.
+En este caso solo disponemos de un hiperparámetro gestionado por caret, esto significa que en tuneGrid no podemo sponer mas hiperparametros de random forest porque caret no lo sabe gestionar por lo que tendremos que introducirlos manualmente en el train(). Dentro de los demas hiperparamentros existentes vamos a probar tambien ntree que es el numero de arboles de decision, para ello crearemos un bucle y entrenaremos modelos segun para cada numero de arboles.
 
 Creamos el grid para el hiperparametros mtry.
 
 ```{r}
-rf.grid <- expand.grid(mtry = c(2, 4, 6, 8))
+rf.grid <- expand.grid(mtry = c(1, 2, 6, 8, 10))
 ```
 
 ### Configuraciones de trainControl
@@ -1886,34 +1886,42 @@ El modelo random forest no permite valores NA por lo que usaremos la base de dat
 any(is.na(credit.Datos.Train.imp))
 ```
 
-Por lo demas nuestra base de datos a priori es apta para el entrenamiento
+Vemos que efectivamente no hay datos NA por lo que creamos nuestra variable objtivo y nuestras variables predictoras.
 
 ```{r}
-
-varObjetivo <- "V16" # Cambia esto por tu variable de salida
+varObjetivo <- "V16"
 varsPredictoras <- setdiff(names(credit.Datos.Train.imp), varObjetivo)
 ```
 
 #### Eliminando valores NA
 
-Otra manera de preprocesar los datos para el random forest es eliminando los valores NA, para ello usamos los siguiente.
+Otra manera de preprocesar los datos para el random forest es eliminando los valores NA, para ello usamos lo siguiente.
 
 ```{r}
 credit.Datos.Train.EliminadoNA <- na.omit(credit.Datos.Train)
 credit.Datos.Test.EliminadoNA <- na.omit(credit.Datos.Test)
 ```
 
-```{r}
+Podemos comprobar tambien que no hay valores NA
 
-varObjetivo <- "V16" # Cambia esto por tu variable de salida
+```{r}
+any(is.na(credit.Datos.Train.EliminadoNA))
+```
+
+Como hemos comprobado no hay valores NA por lo que creamos nuestra variable objetivo y nuestras variables predictoras.
+
+```{r}
+varObjetivo <- "V16"
 varsPredictoras <- setdiff(names(credit.Datos.Train.EliminadoNA), varObjetivo)
 ```
 
 ### Entrenamiento
 
-#### Imputando datos NA
+Ahora procederemos a entrenar modelos de random forest, vamos a distinguir dos subsecciones de entrenamiento. El entrenamiento con los valores NA imputados y el entrenamiento con los valores NA eliminados.
 
-Ahora procedemos a entrenar nuestro primer modelo de random forest
+#### Datos NA imputados
+
+Ahora procedemos a entrenar nuestro primer modelo de random forest. Vamos a realizar tres entrenamientos cada uno con un número de arboles distinto, ya que como hemos mencionado anteriormente al ser el numero de arboles un hiperparametros que no gestiona caret hay que ponerlo directamente en el train().
 
 ```{r}
 
@@ -1956,12 +1964,52 @@ rf.modelo.3cv10.twoSummary.roc.1000 <- train(
 print(rf.modelo.3cv10.twoSummary.roc.100$results$ROC[4])
 ```
 
-Mostramos los resultado.
+Vamos a ver con el siguiente codigo cual es el maximo ROC de cada uno de los modelos y para que hiperparametro, recordemos que cuanto mas cercanos sea el ROC a uno mejor predicciones tendrá el modelo.
+
+```{r}
+maxIndexRf100 <- which.max(rf.modelo.3cv10.twoSummary.roc.100$results$ROC)
+
+# Obtener los valores correspondientes
+maxRocRf100 <- rf.modelo.3cv10.twoSummary.roc.100$results$ROC[maxIndexRf100]
+
+mtry100 <- rf.modelo.3cv10.twoSummary.roc.100$results$mtry[maxIndexRf100]
+
+# Imprimir los resultados
+cat("El valor más alto de ROC para 100 arboles es:", maxRocRf100, "\n")
+cat("Corresponde a mtry:", mtry100, "\n")
+
+
+maxIndexRf500 <- which.max(rf.modelo.3cv10.twoSummary.roc.500$results$ROC)
+
+# Obtener los valores correspondientes
+maxRocRf500 <- rf.modelo.3cv10.twoSummary.roc.500$results$ROC[maxIndexRf500]
+
+mtry500 <- rf.modelo.3cv10.twoSummary.roc.500$results$mtry[maxIndexRf500]
+
+# Imprimir los resultados
+cat("El valor más alto de ROC para 500 arboles es:", maxRocRf500, "\n")
+cat("Corresponde a mtry:", mtry500, "\n")
+
+
+maxIndexRf1000 <- which.max(rf.modelo.3cv10.twoSummary.roc.1000$results$ROC)
+
+# Obtener los valores correspondientes
+maxRocRf1000 <- rf.modelo.3cv10.twoSummary.roc.1000$results$ROC[maxIndexRf1000]
+
+mtry1000 <- rf.modelo.3cv10.twoSummary.roc.1000$results$mtry[maxIndexRf1000]
+
+# Imprimir los resultados
+cat("El valor más alto de ROC para 1000 arboles es:", maxRocRf1000, "\n")
+cat("Corresponde a mtry:", mtry1000, "\n")
+
+
+```
+Vemos que probablemente el modelo se comporta mejor con valores pequeños de mtry. Ahora vemos una comparativa segun el nummero de arboles.
 
 ```{r}
 # Crear un data.frame con los resultados
 resultados_df <- data.frame(
-  mtry = rep(c(2, 4, 6, 8), times = 3), # Repetimos 4 valores de mtry, una vez por modelo
+  mtry = rep(c(1, 2, 6, 8, 10), times = 3), # Repetimos 4 valores de mtry, una vez por modelo
   ntree = rep(c(100, 500, 1000), each = 4), # 3 modelos, cada uno con 4 mtry
   ROC = c(
     rf.modelo.3cv10.twoSummary.roc.100$results$ROC[1:4], 
@@ -1986,7 +2034,9 @@ ggplot(resultados_df, aes(x = as.factor(mtry), y = ROC, fill = as.factor(ntree))
   coord_cartesian(ylim = c(0.9, 1))  # Ajustar el rango del eje Y
 ```
 
-#### Eliminando datos NA
+Se puede ver que la diferencia entre 500 y 1000 arboles es muy pequeña por lo que poner 1000 arboles no merece la pena ya que conlleva mucho tiempo de ejecución.
+
+#### Datos NA eliminados
 
 Repetimos el mismo codigo pero esta vez para la base con los datos NA eliminados.
 
@@ -2029,12 +2079,52 @@ rf.modelo.3cv10.twoSummary.roc.1000.eliminadoNA <- train(
 )
 ```
 
-Mostramos los resultados.
+Como en la subseccion anterior vemos qu evalor de mytry ha dado el valores mas alto.
+
+```{r}
+maxIndexRf100Eliminado <- which.max(rf.modelo.3cv10.twoSummary.roc.100.eliminadoNA$results$ROC)
+
+# Obtener los valores correspondientes
+maxRocRf100Eliminado <- rf.modelo.3cv10.twoSummary.roc.100.eliminadoNA$results$ROC[maxIndexRf100Eliminado]
+
+mtry100Eliminado <- rf.modelo.3cv10.twoSummary.roc.100.eliminadoNA$results$mtry[maxIndexRf100Eliminado]
+
+# Imprimir los resultados
+cat("El valor más alto de ROC para 100 arboles es:", maxRocRf100Eliminado, "\n")
+cat("Corresponde a mtry:", mtry100Eliminado, "\n")
+
+
+maxIndexRf500Eliminado <- which.max(rf.modelo.3cv10.twoSummary.roc.500.eliminadoNA$results$ROC)
+
+# Obtener los valores correspondientes
+maxRocRf500Eliminado <- rf.modelo.3cv10.twoSummary.roc.500.eliminadoNA$results$ROC[maxIndexRf500Eliminado]
+
+mtry500Eliminado <- rf.modelo.3cv10.twoSummary.roc.500.eliminadoNA$results$mtry[maxIndexRf500Eliminado]
+
+# Imprimir los resultados
+cat("El valor más alto de ROC para 500 arboles es:", maxRocRf500Eliminado, "\n")
+cat("Corresponde a mtry:", mtry500Eliminado, "\n")
+
+
+maxIndexRf1000Eliminado <- which.max(rf.modelo.3cv10.twoSummary.roc.1000.eliminadoNA$results$ROC)
+
+# Obtener los valores correspondientes
+maxRocRf1000Eliminado <- rf.modelo.3cv10.twoSummary.roc.1000.eliminadoNA$results$ROC[maxIndexRf1000Eliminado]
+
+mtry1000Eliminado <- rf.modelo.3cv10.twoSummary.roc.1000.eliminadoNA$results$mtry[maxIndexRf1000Eliminado]
+
+# Imprimir los resultados
+cat("El valor más alto de ROC para 1000 arboles es:", maxRocRf1000Eliminado, "\n")
+cat("Corresponde a mtry:", mtry1000Eliminado, "\n")
+
+
+```
+
 
 ```{r}
 # Crear un data.frame con los resultados
 resultados_df <- data.frame(
-  mtry = rep(c(2, 4, 6, 8), times = 3), # Repetimos 4 valores de mtry, una vez por modelo
+  mtry = rep(c(1, 2, 6, 8, 10), times = 3), # Repetimos 4 valores de mtry, una vez por modelo
   ntree = rep(c(100, 500, 1000), each = 4), # 3 modelos, cada uno con 4 mtry
   ROC = c(
     rf.modelo.3cv10.twoSummary.roc.100.eliminadoNA$results$ROC[1:4], 
@@ -2061,27 +2151,26 @@ ggplot(resultados_df, aes(x = as.factor(mtry), y = ROC, fill = as.factor(ntree))
 
 ### Test de modelos
 
-Probamos los distintos modelos que hemos entrenado para ver cual tiene mejor prediccion
+Probamos los distintos modelos que hemos entrenado para ver cual tiene mejor prediccion, esto lo hacemos sobre nuestro conjunto test.
 
 ```{r}
 
 # 9. Guardar el modelo entrenado
 #saveRDS(modelo_rf, "modelo_rf.rds")
 
-
+# Entrenamiento con valores NA imputados
 prediccion.rf.modelo.3cv10.twoSummary.roc.100 <- predict(rf.modelo.3cv10.twoSummary.roc.100, newdata = credit.Datos.Test.imp[varsPredictoras])
 
 prediccion.rf.modelo.3cv10.twoSummary.roc.500 <- predict(rf.modelo.3cv10.twoSummary.roc.500, newdata = credit.Datos.Test.imp[varsPredictoras])
 
 prediccion.rf.modelo.3cv10.twoSummary.roc.1000 <- predict(rf.modelo.3cv10.twoSummary.roc.1000, newdata = credit.Datos.Test.imp[varsPredictoras])
 
+# ENtrenamiento con valores NA eliminados
 prediccion.rf.modelo.3cv10.twoSummary.roc.100.eliminadoNA <- predict(rf.modelo.3cv10.twoSummary.roc.100.eliminadoNA, newdata = credit.Datos.Test.imp[varsPredictoras])
 
 prediccion.rf.modelo.3cv10.twoSummary.roc.500.eliminadoNA <- predict(rf.modelo.3cv10.twoSummary.roc.500.eliminadoNA, newdata = credit.Datos.Test.imp[varsPredictoras])
 
 prediccion.rf.modelo.3cv10.twoSummary.roc.1000.eliminadoNA <- predict(rf.modelo.3cv10.twoSummary.roc.1000.eliminadoNA, newdata = credit.Datos.Test.imp[varsPredictoras])
-
-
 
 ```
 
@@ -2168,15 +2257,26 @@ ggplot(resultados, aes(x = as.factor(Numero_Arboles), y = Accuracy, fill = Tipo_
 ### Postprocesado de datos
 
 ```{r}
-varImp(modelo_rf)
+varImp(rf.modelo.3cv10.twoSummary.roc.100)
+
+varImp(rf.modelo.3cv10.twoSummary.roc.500)
+
+varImp(rf.modelo.3cv10.twoSummary.roc.1000)
+
+varImp(rf.modelo.3cv10.twoSummary.roc.100.eliminadoNA)
+
+varImp(rf.modelo.3cv10.twoSummary.roc.500.eliminadoNA)
+
+varImp(rf.modelo.3cv10.twoSummary.roc.1000.eliminadoNA)
 ```
 
-La variable V7 la podriamos eliminar para el modelo ya que apenas tiene impacto
+Vemos que la V7 tiene un impacto infimos en todos los modelos por lo que vamos a eliminarla. También se podria considerar la eliminación de la variable de empleados pero hay algunos modelos que si que han hecho un uso considerable para no eliminarla.
 
 ```{r}
 predictors(modelo_rf$finalModel)
-
 ```
+
+### Conclusión
 
 ## Redes neuronales
 
@@ -2213,6 +2313,18 @@ nnet.trainControl <- trainControl(
 
 ### Preprocesado
 
+Todos los preprocesados siguientes ya han sido hechos y estan en la base de datos credit.Datos.Train.Knn por lo que la reutilizamos para evitar repetición de codigo. Por lo que simplemente los describiremos.
+
+Antes de nada creamos nuestra variable objetivo y nuestras variables predictoras.
+
+```{r}
+varObjetivo <- "V16"
+varsPredictoras <- setdiff(names(credit.Datos.Train.Knn), varObjetivo)
+```
+
+
+#### Imputación de valores nA
+
 Nnet no puede maneja valores NA por lo que usaremos la base de datos donde los valores NA estan imputados.
 
 #### Normalización
@@ -2223,23 +2335,14 @@ nnet es sensible a las magnitudes de las variables. Si los predictores tienen di
 
 nnet requiere que las variables categóricas se representen como variables dummy (una columna por cada nivel de la variable).
 
-
 #### Eliminación de Predictores Irrelevantes o Redundantes
 
 Variables altamente correlacionadas o con baja varianza pueden aumentar el tiempo de entrenamiento y provocar sobreajuste.
 
-Todos estos preprocesados anteriores ya han sido hechos y estan en la base de datos credit.Datos.Train.Knn por lo que la reutolizamos para evitar repeticion de codigo.
 
 ### Entrenamiento
 
-Procedemos con el entrenamiento
-
-```{r}
-varObjetivo <- "V16"
-varsPredictoras <- setdiff(names(credit.Datos.Train.Knn), varObjetivo)
-```
-
-
+Procedemos ahora a entrenar modelos, y como sucedica con el random forest, vamos a entrenar tres modelos correspondiente a distintos valores del hiperparamtro maxit (numero de iteraciones) que no esta manejado por caret y hay que introducirlo directamente en el train().
 
 ```{r}
 set.seed(123)
@@ -2341,7 +2444,7 @@ prediccion.nnet.500 <- predict(nnet.train.500, newdata = credit.Datos.Test.Knn[v
 
 ### Comparativa de modelos
 
-Vemos los resultados
+Una vez entrenados los modelos y probados sobre nuestro conjunto test vamos a ver los resultados. Para ello creamos primero las matrices de confusión.
 
 ```{r}
 # Generar matriz de confusión
@@ -2365,6 +2468,7 @@ matrizConfusion.nnet.500 <- confusionMatrix(
 
 ```
 
+Ahora creamos un histograma para ver que modelo arroja mejores resultados.
 
 ```{r}
 
@@ -2398,24 +2502,6 @@ ggplot(resultados, aes(x = Modelo, y = Accuracy, fill = Modelo)) +
 
 ```
 
+### Postprocesado de datos
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+### Conclusión
