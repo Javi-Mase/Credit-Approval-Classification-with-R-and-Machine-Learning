@@ -1094,9 +1094,21 @@ Terminamos este entrenamiento habiendo probado muchísimas configuraciones de pr
 
 ## SVM
 
-En primer lugar vamos a tratar de buscar información a cerca de las características del modelo. Gran parte de la informacion obtenida es de la siguiente pagina.\
+En primer lugar vamos a tratar de buscar información a cerca de las características del modelo. Gran parte de la información obtenida es de la siguiente pagina.\
 [https://medium.com/\@vdeshpande551/understanding-the-inner-workings-of-svm-from-data-preprocessing-to-model-deployment-cdc9d72a2d34](https://medium.com/@vdeshpande551/understanding-the-inner-workings-of-svm-from-data-preprocessing-to-model-deployment-cdc9d72a2d34){.uri}\
-El modelo SVM (support vector machines) funciona buscando el hiperplano óptimo que maximiza la separación entre las clases en el espacio de características. Es por esto que SVM es sensible a la escala de los datos porque utiliza medidas de distancias es por esto que vamos a probar varios modelos con diferentes escalados. Tambien hay que tener en cuenta que SVM no trabaja con variables categoricas por lo que tendremos que hacer dummys, para ello supondremos que todas son tipo ranked. Otro aspecto necesario para que nuestro modelo funcione es eliminar las variables con poca correlación. Por último realizaremos otras pruebas como reducir la dimensionalidad con diferentes metodos, tratar los datos desvalanceados y probaremos a eliminar ciertas variables que no tengan importancia en el modelo final.
+El modelo SVM (Support Vector Machines) funciona buscando el hiperplano óptimo que maximiza la separación entre las clases en el espacio de características. Por esta razón, SVM es sensible a la escala de los datos, ya que utiliza medidas de distancia. Por ello, probaremos varios modelos con diferentes métodos de escalado.
+
+Además, es importante tener en cuenta que SVM no trabaja directamente con variables categóricas, por lo que será necesario transformarlas en dummies. Supondremos que todas las variables categóricas son de tipo ranked.
+
+Otro aspecto necesario para que nuestro modelo funcione es eliminar las variables con poca correlación con la variable objetivo. También realizaremos otras pruebas, como:
+
+-   Reducir la dimensionalidad con diferentes métodos.
+
+-   Tratar los datos desbalanceados.
+
+-   Eliminar ciertas variables que no tengan importancia en el modelo final.
+
+De este modo, porbaremos distintos preprocesados de datos con el objetivo de encontrar el que mejor rendimiento proporcione a nuestro model.
 
 ```{r}
 credit.Datos.Train.Svm <- credit.Datos.Train
@@ -1105,7 +1117,7 @@ credit.Datos.Test.Svm <- credit.Datos.Test
 
 ### Transformacion de distribuciones asimetricas
 
-En primer lugar vamos a comenzar tratando las distribuciones asimetricas. Para ello vamos a usar **BoxCox** cuando los datos sean positivos y continuos y las distribuciones esten sesgadas a la derecha. Yeo-Johnson podemos usarla cuando los datos sean positivos, negativos o ceros y ademas funciona bien con asimetrias de ambos tipos. Por último expoTrans la emplearemos cuando los datos tengan una asimetria extremadamente sesgada.
+En primer lugar vamos a comenzar tratando las distribuciones asimetricas. Para ello vamos a usar BoxCox cuando los datos sean positivos y continuos y las distribuciones esten sesgadas a la derecha. Yeo-Johnson podemos usarla cuando los datos sean positivos, negativos o ceros y ademas funciona bien con asimetrias de ambos tipos. Por último expoTrans la emplearemos cuando los datos tengan una asimetria extremadamente sesgada.
 
 ```{r}
 credit.Datos.Train.Asimetricas <- credit.Datos.Train.Svm
@@ -1297,7 +1309,7 @@ credit.Datos.Test.Svm <- credit.Datos.Test.Dummies
 
 ### Eliminar variables con poca varianza
 
-Este paso también debe realizarse en todos los prepocesados que apliquemos.
+Este paso también debe realizarse en todos los prepocesados que queramos probar.
 
 ```{r}
 nzv.Train <- nearZeroVar(credit.Datos.Train.Svm)
@@ -1349,7 +1361,7 @@ credit.modelo.svm <- train(
 )
 ```
 
-El error de entrenamiento del modelo
+El porcentaje de acierto del modelo sobre el conjunto de datos entrenamiento del modelo es el siguiente:
 
 ```{r}
 train_pred <- predict(credit.modelo.svm, credit.Datos.Train.Svm)
@@ -1358,7 +1370,9 @@ accuracy <- conf_matrix$overall['Accuracy']
 accuracy
 ```
 
-El error final del modelo sería:
+Sin embargo, este resultado no es válido para evaluar el desempeño real del modelo, ya que mide el rendimiento sobre los datos con los que el modelo ha entrenado. Esto puede generar un resultado más optimista que el error real, ya que el modelo ha "visto" estos datos durante el entrenamiento y puede estar ajustado a ellos.
+
+Es por esto que vamos a medir el rendimiento sobre el conjunto test.
 
 ```{r}
 #Mostrar porcentaje final
@@ -1383,11 +1397,13 @@ Tras probar 20 combinaciones de hiper-parametros vamos a cuales han sido los que
 modelLookup(("svmRadial"))
 ```
 
-El parametro C es el parametro de penalización, cuanto más altos sean los valores que este tome más estricto será, dando prioridad a clasificar correctamente todos los puntos. Con valores mas pequeños permite un margen más amplio, tolerando así más errores de clasificación.
+El parámetro C es el parámetro de penalización, cuanto más altos sean los valores que este tome más estricto será, dando prioridad a clasificar correctamente todos los puntos. Con valores mas pequeños permite un margen más amplio, tolerando así más errores de clasificación.
 
-El parametro sigma, al igual que C cuanto mayor es su valor más cercanos serán los puntos considerados frontera de decisión y viceversa.
+El parámetro sigma, al igual que C cuanto mayor es su valor más cercanos serán los puntos considerados frontera de decisión y viceversa.
 
 <https://stackabuse.com/understanding-svm-hyperparameters/>
+
+Los hiper-parámetros de nuestro modelo final son los siguientes:
 
 ```{r}
 credit.modelo.svm$bestTune
@@ -1429,7 +1445,15 @@ Como ya hemos dicho para que el modelo SVM funcione es necesario haber transform
 |                                   | ```           |
 +-----------------------------------+---------------+
 
-Tras las ejecuciones consideramos que para los datos para el modelo SVM haremos dummys, eliminaremos las variables con poca varianza y aplicaremos PCA.
+Tras las ejecuciones, consideramos que para los datos del modelo SVM realizaremos las siguientes acciones:
+
+-   Dummys
+
+-   Eliminación de variables con poca varianza
+
+-   PCA
+
+No será necesario normalizar los datos, ya que PCA incluye un paso de estandarización de las variables de forma implícita.
 
 ### Submuestreo con clases desvalanceadas
 
@@ -1442,7 +1466,7 @@ credit.Vars.Entrada.Usadas <- setdiff(names(credit.Datos.Train.Svm),credit.Var.S
 
 #### down-sampling:
 
-Consiste en reducir el n´umero de ejemplos de las clases m´as frecuentes para igualar la clase menos frecuente.
+Consiste en reducir el número de ejemplos de las clases más frecuentes para igualar la clase menos frecuente.
 
 ```{r}
 set.seed(12345)
@@ -1554,11 +1578,11 @@ porcentaje_acierto <- matriz_confusion$overall["Accuracy"] * 100
 print(paste("Porcentaje de acierto:", round(porcentaje_acierto, 2), "%"))
 ```
 
-La eliminacion de esta variable, a pesar de que no tiene imporatancia en el modelo final enternado no mejora el rendiminto.
+Como podemos observar la eliminación de la variable PC5, que no tenía impotancia el modelo final entrenado, supone un aumento en el porcentaje de acierto.
 
 ### Conclusión
 
-Para la configuración de nuestro modelo SVM, el mejor resultado lo obtienen los datos tras haber hecho Dummys, eliminado las variables con poca varianza y habiendo aplicado PCA. Tras esto eliminamos PC5
+Para la configuración de nuestro modelo SVM, el mejor resultado lo obtienen los datos tras haber hecho Dummys, eliminado las variables con poca varianza y habiendo aplicado PCA. Tras todo esto eliminamos PC5 y de esta forma obtenemos un porcentaje de acierto de 87.59%.
 
 El modelo final sería:
 
@@ -1568,7 +1592,11 @@ print(credit.modelo.svm.Reduc)
 
 ## KNN
 
-K-Nearest Neighbors es un algoritmo que clasifica o predice en función de los k vecinos mas cercanos. En nuestro caso, nos interesa la clasificación. Debido a como funciona KNN será fundamental la normalización de los datos asi como transformar las variables categoricas en dummys. No nos centraremos tanto en la reducción de los datos y por último realizaremos pruebas eliminando variables poco importantes asi como tratar las clases desvalanceadas o los sesgos.
+K-Nearest Neighbors (KNN) es un algoritmo de clasificación que predice la clase de una observación en función de las k observaciones más cercanas en el espacio de características. En nuestro caso, nos interesa aplicar KNN para clasificación.
+
+Debido a la forma en que funciona KNN, la normalización de los datos será fundamental, ya que el algoritmo depende de las distancias entre las observaciones. También será necesario transformar las variables categóricas en dummys, para que el modelo pueda manejarlas adecuadamente.
+
+No nos centraremos tanto en la reducción de la dimensionalidad, ya que KNN no se ve tan afectado por la cantidad de características como otros algoritmos, aunque podría aplicarse si se considera necesario. Por último, realizaremos pruebas eliminando variables poco importantes y también trataremos el desbalanceo de clases o sesgos en los datos.
 
 <https://www.datacamp.com/tutorial/k-nearest-neighbors-knn-classification-with-r-tutorial>
 
@@ -1596,8 +1624,8 @@ credit.Datos.Test.CS <- predict(credit.preProc.CS.Mod,credit.Datos.Test.Knn)
 ```
 
 ```{r}
-credit.Datos.Train.Knn <- credit.Datos.Train.CS
-credit.Datos.Test.Knn <- credit.Datos.Test.CS
+#credit.Datos.Train.Knn <- credit.Datos.Train.CS
+#credit.Datos.Test.Knn <- credit.Datos.Test.CS
 ```
 
 #### Range
@@ -1610,8 +1638,8 @@ credit.Datos.Test.Rg <- predict(credit.preProc.CS.Mod,credit.Datos.Test.Knn)
 ```
 
 ```{r}
-#credit.Datos.Train.Knn <- credit.Datos.Train.Rg
-#credit.Datos.Test.Knn <- credit.Datos.Test.Rg
+credit.Datos.Train.Knn <- credit.Datos.Train.Rg
+credit.Datos.Test.Knn <- credit.Datos.Test.Rg
 ```
 
 ### Dummys
@@ -1668,7 +1696,7 @@ credit.modelo.knn <- train(V16 ~ .,  # Usamos "Class" como variable de salida
 
 ```
 
-El error de entrenamiento del modelo
+El porcentaje de acierto del modelo sobre el conjunto de datos entrenamiento del modelo es el siguiente:
 
 ```{r}
 train_pred <- predict(credit.modelo.knn, credit.Datos.Train.Knn)
@@ -1677,7 +1705,7 @@ accuracy <- conf_matrix$overall['Accuracy']
 accuracy
 ```
 
-El error final del modelo sería:
+Como ya sabemos ese proporcionará un resultado más optimista que el real. El resultado final del modelo sería:
 
 ```{r}
 #Mostrar porcentaje final
@@ -1702,11 +1730,21 @@ Tras probar 20 combinaciones de hiper-parametros vamos a cuales han sido los que
 modelLookup(("knn"))
 ```
 
+El parámetro k en K-Nearest Neighbors (KNN) representa el número de vecinos más cercanos que se consideran para hacer una predicción.
+
+-   Valor pequeño de k: El modelo es más sensible al ruido y puede sobreajustarse, ya que se basa solo en los pocos vecinos más cercanos.
+
+-   Valor grande de k: El modelo es más general y robusto, ya que considera una mayor cantidad de vecinos, pero puede subajustarse si se elige un valor demasiado grande.
+
 ```{r}
 credit.modelo.knn$bestTune
 ```
 
+En nuestro caso k=13 proporcionara un equilibrio entre la sensibilidad al ruido y la generalidad.
+
 ### **¿Con qué configuración hemos hecho los entrenamientos?**
+
+Para el modelo knn es necesario haber hecho dummys, una vez hecho esto probamos varios preprocesados.
 
 +------------------------------------------+---------------+
 | Configuración                            | Acierto       |
@@ -1744,6 +1782,8 @@ credit.modelo.knn$bestTune
 |                                          | ```           |
 +------------------------------------------+---------------+
 
+En este caso, el mejor resultado se obtiene después de haber normalizado los datos mediante el método Range y haber transformado las variables categóricas en dummys.
+
 ### Submuestreo con clases desvalanceadas
 
 Para ver si nuestro modelo mejora vamos a tratar las clases desvalanceadas en el conjunto de los datos de entrenamiento.
@@ -1755,7 +1795,7 @@ credit.Vars.Entrada.Usadas <- setdiff(names(credit.Datos.Train.Knn),credit.Var.S
 
 #### down-sampling:
 
-Consiste en reducir el n´umero de ejemplos de las clases m´as frecuentes para igualar la clase menos frecuente.
+Consiste en reducir el número de ejemplos de las clases más frecuentes para igualar la clase menos frecuente.
 
 ```{r}
 set.seed(12345)
@@ -1836,7 +1876,15 @@ varImp(credit.modelo.knn)
 predictors(credit.modelo.knn$finalModel)
 ```
 
+En este caso, no hay variables que no se empleen o que tengan poca importancia.
+
 ### Conclusión
+
+Para el modelo de Knn, el mejor resultado lo obtenemos tras una normalización y la transformación de las variables categóricas. El modelo obtendría un porcentaje de acierto de 87.59 %.
+
+```{r}
+print(credit.modelo.knn)
+```
 
 ## Random Forest
 
@@ -2004,6 +2052,7 @@ cat("Corresponde a mtry:", mtry1000, "\n")
 
 
 ```
+
 Vemos que probablemente el modelo se comporta mejor con valores pequeños de mtry. Ahora vemos una comparativa segun el nummero de arboles.
 
 ```{r}
@@ -2119,7 +2168,6 @@ cat("Corresponde a mtry:", mtry1000Eliminado, "\n")
 
 
 ```
-
 
 ```{r}
 # Crear un data.frame con los resultados
@@ -2322,7 +2370,6 @@ varObjetivo <- "V16"
 varsPredictoras <- setdiff(names(credit.Datos.Train.Knn), varObjetivo)
 ```
 
-
 #### Imputación de valores nA
 
 Nnet no puede maneja valores NA por lo que usaremos la base de datos donde los valores NA estan imputados.
@@ -2338,7 +2385,6 @@ nnet requiere que las variables categóricas se representen como variables dummy
 #### Eliminación de Predictores Irrelevantes o Redundantes
 
 Variables altamente correlacionadas o con baja varianza pueden aumentar el tiempo de entrenamiento y provocar sobreajuste.
-
 
 ### Entrenamiento
 
