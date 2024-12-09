@@ -1,15 +1,21 @@
 ---
-title: "normalizar"
+title: "Practica final Aprendizaje Computacional"
+author: "Manuel Francisco Hidalgo Ros Javier García Masegosa Javier Prior Gomez"
 output:
-  pdf_document: default
-  html_document: default
-date: "2024-11-20"
+  html_document:
+    df_print: paged
+    highlight: kate
+    number_sections: true
+    theme: paper
+    toc: true
+    toc_float: true
+  pdf_document:
+    toc: true
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
-
 
 ```{r cars}
 #setwd("/home/manu/FIUM/TERCERO/PrimerCuatri/AC/Proyecto/PracticasAC")
@@ -76,7 +82,7 @@ Vamos a ver qué forma tienen nuestros datos:
 str(combined_credit)
 ```
 
-## Pre-procesado de datos (I): Tratamiento de outliers y nulos:
+# Pre-procesado de datos (I): Tratamiento de outliers y nulos:
 
 Comenzamos renombrando las columnas en base a la información que tenemos:
 
@@ -607,9 +613,9 @@ credit.Datos.Test <- credit.Datos.Test.imp
 credit.Datos.Train <- credit.Datos.Train.imp
 ```
 
-## Pre-procesado de datos (II): Eliminar predictores correlados o de poca Varianza
+# Pre-procesado de datos (II): Eliminar predictores correlados o de poca Varianza
 
-#### 1. Eliminar variables con poca Varianza
+## Eliminar variables con poca Varianza
 
 Debemos de comprobar si la base de datos tiene columnas con poca varianza. Esto lo podemos comprobar con nearZero():
 
@@ -629,9 +635,9 @@ credit.Datos.Train$Origen <- NULL
 credit.Datos.Test$Origen <- NULL
 ```
 
-## Entrenamiento de modelos que proporciona Caret
+# Entrenamiento de modelos que proporciona Caret
 
-### **1. GBM:**
+## **GBM**
 
 Lo primero que debemos de buscar son las características de este modelo para ver si es interesante para nuestro caso. En este enlace podemos encontrar mucha información acerca del mismo:\
 <https://www.linkedin.com/pulse/ai-algorithms-deep-dive-gradient-boosting-machines-gbm-vasu-rao-snesc>
@@ -661,7 +667,7 @@ credit.Datos.gbm.Train <- credit.Datos.Train
 credit.Datos.gbm.Test <- credit.Datos.Test
 ```
 
-#### 1.1 Dummy:
+### Dummy
 
 ```{r}
 # Cogemos la base de datos que queremos
@@ -692,7 +698,7 @@ credit.Datos.gbm.Train <- credit.Datos.Train.Dummies
 credit.Datos.gbm.Test <- credit.Datos.Test.Dummies
 ```
 
-#### 1.2 PCA:
+### PCA
 
 Pese a no indicar en ningún sitio que PCA/ICA sea necesario en gbm, debemos de comprobarlo experimentalmente. Por lo tanto, lo incluimos en nuestro procesado:
 
@@ -711,7 +717,7 @@ credit.Datos.Test.Pca <- predict(credit.PreProc.Pca.Mod, credit.Datos.gbm.pca.Te
 #credit.Datos.gbm.Test <- credit.Datos.Test.Pca
 ```
 
-#### 1.3 ICA:
+### ICA
 
 ```{r}
 # Cogemos la base de datos que nos interesa, lo hacemos así para que sea configurable
@@ -735,7 +741,7 @@ En la web anterior recomiendan normalizar los datos antes del entrenamiento, sin
 
 Por lo tanto, antes esta contradicción, la única forma de comprobarlo es realizando los dos tipos de normalización que encontramos en el documento de caret y viendo resultados:
 
-#### 1.4. Normalización range:
+### Normalización range
 
 ```{r}
 library(caret)
@@ -763,7 +769,7 @@ credit.Datos.Test.norm <- predict(preProcParams, credit.Datos.gbm.norm.range.Tes
 #credit.Datos.gbm.Test <- credit.Datos.Test.norm
 ```
 
-#### 1.5. Normalización center-scale:
+### Normalización center-scale
 
 ```{r}
 # Cogemos la base de datos que nos interesa, lo hacemos así para que sea configurable
@@ -782,7 +788,7 @@ credit.Datos.Test.CS <- predict(credit.preProc.CS.Mod,credit.Datos.gbm.norm.cs.T
 #credit.Datos.gbm.Test <- credit.Datos.Test.CS
 ```
 
-#### 1.6. Últimas comprobaciones antes de entrenar:
+### Últimas comprobaciones antes de entrenar
 
 Comprobamos si se ha generado alguna variable con varianza cercana a cero, y eliminamos dichas columnas (pasará cuando hagamos dummy y no hagamos PCA/ICA):
 
@@ -808,7 +814,7 @@ nearZeroVar(credit.Datos.gbm.Test)
 
 Todo correcto.
 
-#### 1.8. Entrenamiento:
+### Entrenamiento
 
 ```{r}
 credit.Var.Salida.Usada <- "V16"
@@ -843,7 +849,7 @@ porcentaje_acierto <- matriz_confusion$overall["Accuracy"] * 100
 print(paste("Porcentaje de acierto:", round(porcentaje_acierto, 2), "%"))
 ```
 
-#### 1.9. Encontrar los mejores hiper-parámetros y ajustar modelo final:
+### Encontrar los mejores hiper-parámetros y ajustar modelo final
 
 ```{r}
 library(caret)
@@ -893,7 +899,7 @@ accuracy <- conf_mat$overall["Accuracy"]
 print(paste("Porcentaje de Acierto:", round(accuracy * 100, 2), "%"))
 ```
 
-#### 1.10. Entrenamos con hiper-parámetros fijos:
+### Entrenamos con hiper-parámetros fijos
 
 Una vez hemos encontrado los mejores hiper-parámetros debemos de entrenar con dichos hiper-parámetros. Los que mejor resultado han dado son:\
 \
@@ -947,280 +953,6 @@ print(credit.modelo.final.gbm)
 print(paste("Porcentaje de Acierto (Modelo Final):", round(accuracy * 100, 2), "%"))
 
 ```
-
-
-
-
-
-
-# Random Forest
-
-
-
-
-Vamos a comenzar a entrenar modelos random forest. Para ellos vamos primero a ver que hiperparametros nos ofrece caret de forma directa para usar.
-
-```{r}
-modelLookup(("rf"))
-```
-En este caso solo disponemos de un hiperparametro, pero random forest tiene mas hiperparametros como puede ser ntree que es el numero de arboles generado el cual lo fijaremos en 1000 en todos los train crontrol para darle estabilidad al modelo. Para mtry creamos un grid con distintos valores para este hiperparametro.
-
-```{r}
-rf.grid <- expand.grid(mtry = c(1, 2, 3, 10, 15))
-```
-
-
-## Configuraciones de trainControl
-
-Vamos usar trainControl() para configurar procesos del entrenamiento donde vamos a poner una configuracion habitual recomendada por el caret la cual consiste en cross validacion cruzada de 10 plieges y 3 repeticiones.
-
-
-```{r}
-rf.trainControl.3cv10.twoSummary.roc <- trainControl(
-  method = "repeatedcv",
-  number = 10,
-  repeats = 3,
-  # No mostramos el proceso porque seria muy extenso
-  verboseIter = FALSE,
-  # Métricas adicionales como ROC (para clasificación binaria)
-  summaryFunction = twoClassSummary,
-  # Necesario si queremos usar roc
-  classProbs = TRUE,
-  # Guardamos todo para hacer diagramas
-  returnResamp = "all"
-)
-```
-
-
-## Preprocesado de datos para el modelo
-
-### Imputando valores NA
-
-
-El modelo random forest no permite valores NA por lo que usaremos la base de datos cuyos valores NA estan imputados, comprobamos que efectivamente no existe valores NA en la base de datos que vamos a usar.
-
-```{r}
-any(is.na(credit.Datos.Train.imp))
-```
-
-Por lo demas nuestra base de datos a priori es apta para el entrenamiento
-
-```{r}
-
-varObjetivo <- "V16" # Cambia esto por tu variable de salida
-varsPredictoras <- setdiff(names(credit.Datos.Train.imp), varObjetivo)
-```
-
-### Eliminando valores NA
-
-Otra manera de preprocesar los datos para el random forest es eliminando los valores NA, para ello usamos los siguiente.
-
-```{r}
-credit.Datos.Train.EliminadoNA <- na.omit(credit.Datos.Train)
-credit.Datos.Test.EliminadoNA <- na.omit(credit.Datos.Test)
-```
-
-```{r}
-
-varObjetivo <- "V16" # Cambia esto por tu variable de salida
-varsPredictoras <- setdiff(names(credit.Datos.Train.EliminadoNA), varObjetivo)
-```
-
-## Entrenamiento
-
-### Imputando datos NA
-
-Ahora procedemos a entrenar nuestro primer modelo de random forest
-
-
-
-```{r}
-set.seed(123)
-rf.modelo.3cv10.twoSummary.roc <- train(
-  x = credit.Datos.Train.imp[varsPredictoras],
-  y = credit.Datos.Train.imp[[varObjetivo]],
-  method = "rf", 
-  metric = "ROC",
-  trControl = rf.trainControl.3cv10.twoSummary.roc,
-  tuneGrid = rf.grid,
-  ntree = 1000
-)
-
-print(rf.modelo.3cv10.twoSummary.roc)
-plot(rf.modelo.3cv10.twoSummary.roc)
-```
-
-
-### Eliminando datos NA
-
-
-```{r}
-set.seed(123)
-rf.modelo.3cv10.twoSummary.roc <- train(
-  x = credit.Datos.Train.EliminadoNA[varsPredictoras],
-  y = credit.Datos.Train.EliminadoNA[[varObjetivo]],
-  method = "rf", 
-  metric = "ROC",
-  trControl = rf.trainControl.3cv10.twoSummary.roc,
-  tuneGrid = rf.grid,
-  ntree = 1000
-)
-
-print(rf.modelo.3cv10.twoSummary.roc)
-plot(rf.modelo.3cv10.twoSummary.roc)
-```
-
-
-## Test de modelos
-
-```{r}
-
-# 9. Guardar el modelo entrenado
-#saveRDS(modelo_rf, "modelo_rf.rds")
-
-# 10. Evaluación del modelo en el conjunto de prueba
-# Predicción en el conjunto de prueba
-predicciones <- predict(rf.modelo.3cv10.twoSummary.roc, newdata = credit.Datos.Test.imp[varsPredictoras])
-
-# Generar matriz de confusión
-confusionMatrix(
-  data = predicciones,
-  reference = credit.Datos.Test[[varObjetivo]],
-  positive = "aprobada" # Cambia esto por la clase objetivo positiva
-)
-
-
-```
-
-
-
-## Comparativa de modelos
-
-```{r}
-
-data.frame(Model = c("rf.modelo.3cv10.kappa", "rf.modelo.3cv10.twoSummary.roc", "rf.modelo.3cv10.multiClassSummary"), Accuracy = c(max(rf.modelo.3cv10.kappa$results$Accuracy), max(rf.modelo.3cv10.twoSummary.roc$results$Accuracy), max(rf.modelo.3cv10.multiClassSummary$results$Accuracy)))
-
-```
-
-
-
-## Redes neuronales
-
-Pasamos ahroa a entrenar el modelo de redes neuronales, primero vemis los posibkes hiperparametros disponbles que tiene:
-
-```{r}
-modelLookup(("nnet"))
-```
-## Entrenamiento
-
-
-```{r}
-nnetGrid <- expand.grid(
-  size = c(1, 3, 5, 7),   # Número de nodos en la capa oculta
-  decay = c(0, 0.01, 0.1, 0.2) # Parámetro de regularización
-)
-```
-
-
-
-
-
-
-```{r}
-nnet.trainControl <- trainControl(
-  method = "repeatedcv",
-  number = 10,
-  repeats = 3,
-  verboseIter = FALSE,
-  classProbs = TRUE,           # Probabilidades de clase (para clasificación)
-  summaryFunction = twoClassSummary, # Métricas adicionales como ROC
-  returnResamp = "all" # Guardamos todo para hacer diagramas
-)
-```
-
-
-
-```{r}
-set.seed(123)
-nnet.train <- train(
-  x = credit.Datos.Train.imp[varsPredictoras],
-  y = credit.Datos.Train.imp[[varObjetivo]],
-  method = "nnet",
-  trControl = nnet.trainControl,
-  tuneGrid = nnetGrid,               # Grid de hiperparámetros
-  trace = FALSE,                            # Evita imprimir mensajes internos de nnet
-  maxit = 200                               # Número máximo de iteraciones
-)
-
-print(nnet.train)
-plot(nnet.train)
-
-```
-
-
-
-```{r}
-
-
-
-# 7. Evaluar el modelo en el conjunto de prueba
-# Predicción en el conjunto de prueba
-predicciones_nnet <- predict(modelo_nnet, newdata = credit.Datos.Test[vars_predictoras])
-
-# Matriz de confusión
-matrizConfusionNNET <- confusionMatrix(
-  data = predicciones_nnet,
-  reference = credit.Datos.Test[[var_objetivo]],
-  positive = "aprobada" # Cambia esto por el nivel positivo correcto
-)
-
-
-
-# Extraer y mostrar el porcentaje de aciertos (Accuracy)
-print(paste("Porcentaje de aciertos: ", round(matrizConfusionNNET$overall["Accuracy"] * 100, 2), "%", sep = ""))
-
-```
-
-
-
-
-# Postprocesado rf
-
-
-```{r}
-
-varImp(modelo_rf)
-```
-
-La variable V7 la podriamos eliminar para el modelo ya que apenas tiene impacto
-
-
-```{r}
-predictors(modelo_rf$finalModel)
-
-```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 **Es importante destacar que:\
 **Es curioso que en la búsqueda de hiper-parámetros obtengamos diferentes rendimientos que cuando "replicamos" el entrenamiento seleccionando ya los parámetros. Mientras en el primero obtenemos 86.86% en el otro obtenemos un 85.%.
@@ -1297,7 +1029,7 @@ Según hemos podido encontrar en esta página web: <https://www.619.io/blog/2017
 
 "It is a bit disappointing to observe no improvement after reducing the number of features using PCA; and even worse, we get some noticeable degradation of the baseline result. Sometimes things like that happen… A more thorough feature tinkering might help here to reduce the number of features and achieve better performance!"
 
-#### 1.12. Eliminar variables no importantes:
+#### Eliminar variables no importantes:
 
 Podemos probar a eliminar las columnas que no se utilizan. Primero debemos de comprobar cuantas se utlizan:
 
@@ -1356,11 +1088,11 @@ Obtenemos el mismo rendimiento. Explicación:
 
 GBM es un modelo que automáticamente reduce la importancia de variables irrelevantes, por lo que eliminarlas manualmente puede no afectar significativamente.
 
-#### 1.13. Conclusión:
+#### Conclusión:
 
 Terminamos este entrenamiento habiendo probado muchísimas configuraciones de preprocesado, eligiendo la más prometedora, y buscando los parámetros idóneos que debería de tener nuestro modelo para obtener buenas predicciones. Siendo nuestro porcentaje de acierto experimental: 85.4%.
 
-### 2. SVM
+### SVM
 
 En primer lugar vamos a tratar de buscar información a cerca de las características del modelo. Gran parte de la informacion obtenida es de la siguiente pagina.\
 [https://medium.com/\@vdeshpande551/understanding-the-inner-workings-of-svm-from-data-preprocessing-to-model-deployment-cdc9d72a2d34](https://medium.com/@vdeshpande551/understanding-the-inner-workings-of-svm-from-data-preprocessing-to-model-deployment-cdc9d72a2d34){.uri}\
@@ -1371,7 +1103,7 @@ credit.Datos.Train.Svm <- credit.Datos.Train
 credit.Datos.Test.Svm <- credit.Datos.Test
 ```
 
-#### 2.1 Transformacion de distribuciones asimetricas
+#### Transformacion de distribuciones asimetricas
 
 En primer lugar vamos a comenzar tratando las distribuciones asimetricas. Para ello vamos a usar **BoxCox** cuando los datos sean positivos y continuos y las distribuciones esten sesgadas a la derecha. Yeo-Johnson podemos usarla cuando los datos sean positivos, negativos o ceros y ademas funciona bien con asimetrias de ambos tipos. Por último expoTrans la emplearemos cuando los datos tengan una asimetria extremadamente sesgada.
 
@@ -1497,7 +1229,7 @@ Si queremos que no aplique comentar lo siguiente:
 #credti.datos.Test.Svm <- credit.Datos.Test.Asimetricas
 ```
 
-#### 2.2 Normalización
+#### Normalización
 
 ```{r}
 credit.Var.Salida.Usada <- c("V16")
@@ -1532,7 +1264,7 @@ credit.Datos.Test.Rg <- predict(credit.preProc.CS.Mod,credit.Datos.Test.Svm)
 #credit.Datos.Test.Svm <- credit.Datos.Test.Rg
 ```
 
-#### 2.3 Dummy
+#### Dummy
 
 Esta transformación de los datos debera emplearse siempre para el correcto funcionamiento del modelo.
 
@@ -1563,7 +1295,7 @@ credit.Datos.Test.Svm <- credit.Datos.Test.Dummies
 
 ```
 
-#### 2.4 Eliminar variables con poca varianza
+#### Eliminar variables con poca varianza
 
 Este paso también debe realizarse en todos los prepocesados que apliquemos.
 
@@ -1574,7 +1306,7 @@ credit.Datos.Train.Svm <- credit.Datos.Train.Svm[, -nzv.Train]
 credit.Datos.Test.Svm <- credit.Datos.Test.Svm[, names(credit.Datos.Train.Svm)]
 ```
 
-#### 2.5 Transformaciones de relaciones entre variables
+#### Transformaciones de relaciones entre variables
 
 ##### PCA
 
@@ -1604,7 +1336,7 @@ credit.Datos.Test.Ica <- predict(credit.PreProc.Ica.Mod, credit.Datos.Test.Svm)
 #credit.Datos.Test.Svm <- credit.Datos.Test.Ica
 ```
 
-#### 2.6 Entrenamiento
+#### Entrenamiento
 
 ```{r}
 set.seed(1234)
@@ -1643,7 +1375,7 @@ porcentaje_acierto <- matriz_confusion$overall["Accuracy"] * 100
 print(paste("Porcentaje de acierto:", round(porcentaje_acierto, 2), "%"))
 ```
 
-#### 2.7 Hiper-parámetros
+#### Hiper-parámetros
 
 Tras probar 20 combinaciones de hiper-parametros vamos a cuales han sido los que finalmente se han elegido para el modelo final.
 
@@ -1661,7 +1393,7 @@ El parametro sigma, al igual que C cuanto mayor es su valor más cercanos serán
 credit.modelo.svm$bestTune
 ```
 
-#### 2.8 **¿Con qué configuración hemos hecho los entrenamientos?**
+#### **¿Con qué configuración hemos hecho los entrenamientos?**
 
 Como ya hemos dicho para que el modelo SVM funcione es necesario haber transformado las variables categoricas y haber eliminado las variables de poca varianza, es por esto q a esa configuracion la llamaremos 'Básica'.
 
@@ -1699,7 +1431,7 @@ Como ya hemos dicho para que el modelo SVM funcione es necesario haber transform
 
 Tras las ejecuciones consideramos que para los datos para el modelo SVM haremos dummys, eliminaremos las variables con poca varianza y aplicaremos PCA.
 
-#### 2.9 Submuestreo con clases desvalanceadas
+#### Submuestreo con clases desvalanceadas
 
 Para ver si nuestro modelo mejora vamos a tratar las clases desvalanceadas en el conjunto de los datos de entrenamiento.
 
@@ -1780,7 +1512,7 @@ porcentaje_acierto <- matriz_confusion$overall["Accuracy"] * 100
 print(paste("Porcentaje de acierto:", round(porcentaje_acierto, 2), "%"))
 ```
 
-#### 2.10 Eliminación de variables
+#### Eliminación de variables
 
 ```{r}
 #Ver importancia de las variables de entrada
@@ -1824,7 +1556,7 @@ print(paste("Porcentaje de acierto:", round(porcentaje_acierto, 2), "%"))
 
 La eliminacion de esta variable, a pesar de que no tiene imporatancia en el modelo final enternado no mejora el rendiminto.
 
-#### 2.11 Conclusión
+#### Conclusión
 
 Para la configuración de nuestro modelo SVM, el mejor resultado lo obtienen los datos tras haber hecho Dummys, eliminado las variables con poca varianza y habiendo aplicado PCA. Tras esto eliminamos PC5
 
@@ -1834,7 +1566,7 @@ El modelo final sería:
 print(credit.modelo.svm.Reduc)
 ```
 
-### 3. KNN
+### KNN
 
 K-Nearest Neighbors es un algoritmo que clasifica o predice en función de los k vecinos mas cercanos. En nuestro caso, nos interesa la clasificación. Debido a como funciona KNN será fundamental la normalización de los datos asi como transformar las variables categoricas en dummys. No nos centraremos tanto en la reducción de los datos y por último realizaremos pruebas eliminando variables poco importantes asi como tratar las clases desvalanceadas o los sesgos.
 
@@ -1852,7 +1584,7 @@ credit.Var.Salida.Usada <- c("V16")
 credit.Var.Entrada.Usadas <- setdiff(names(credit.Datos.Train.Knn),credit.Var.Salida.Usada)
 ```
 
-#### 3.1 Normalización
+#### Normalización
 
 ##### Center-Scale
 
@@ -1882,7 +1614,7 @@ credit.Datos.Test.Rg <- predict(credit.preProc.CS.Mod,credit.Datos.Test.Knn)
 #credit.Datos.Test.Knn <- credit.Datos.Test.Rg
 ```
 
-#### 3.2 Dummys
+#### Dummys
 
 ```{r}
 # Definir la variable de salida y las variables de entrada
@@ -1908,7 +1640,7 @@ credit.Datos.Train.Knn <- credit.Datos.Train.Dummies
 credit.Datos.Test.Knn <- credit.Datos.Test.Dummies
 ```
 
-#### 3.3 Eliminar variables con poca varianza
+#### Eliminar variables con poca varianza
 
 ```{r}
 nzv.Train <- nearZeroVar(credit.Datos.Train.Knn)
@@ -1922,7 +1654,7 @@ credit.Datos.Test.Vari <- credit.Datos.Test.Knn[, names(credit.Datos.Train.Knn)]
 #credit.Datos.Test.Knn <- credit.Datos.Test.Vari
 ```
 
-#### 3.4 Entrenamiento
+#### Entrenamiento
 
 ```{r}
 # Configurar el modelo KNN
@@ -1962,7 +1694,7 @@ porcentaje_acierto <- matriz_confusion$overall["Accuracy"] * 100
 print(paste("Porcentaje de acierto:", round(porcentaje_acierto, 2), "%"))
 ```
 
-#### 3.5 Hiper-Parametros
+#### Hiper-Parametros
 
 Tras probar 20 combinaciones de hiper-parametros vamos a cuales han sido los que finalmente se han elegido para el modelo final.
 
@@ -1974,7 +1706,7 @@ modelLookup(("knn"))
 credit.modelo.knn$bestTune
 ```
 
-#### 3.6 **¿Con qué configuración hemos hecho los entrenamientos?**
+#### **¿Con qué configuración hemos hecho los entrenamientos?**
 
 +------------------------------------------+---------------+
 | Configuración                            | Acierto       |
@@ -2012,7 +1744,7 @@ credit.modelo.knn$bestTune
 |                                          | ```           |
 +------------------------------------------+---------------+
 
-#### 3.7 Submuestreo con clases desvalanceadas
+#### Submuestreo con clases desvalanceadas
 
 Para ver si nuestro modelo mejora vamos a tratar las clases desvalanceadas en el conjunto de los datos de entrenamiento.
 
@@ -2093,7 +1825,7 @@ porcentaje_acierto <- matriz_confusion$overall["Accuracy"] * 100
 print(paste("Porcentaje de acierto:", round(porcentaje_acierto, 2), "%"))
 ```
 
-#### 3.8 Eliminación de variables
+#### Eliminación de variables
 
 ```{r}
 #Ver importancia de las variables de entrada
@@ -2104,4 +1836,430 @@ varImp(credit.modelo.knn)
 predictors(credit.modelo.knn$finalModel)
 ```
 
-#### 3.9 Conclusión
+#### Conclusión
+
+
+## **Random Forest**
+
+El Random Forest es un algoritmo de aprendizaje automático basado en un conjunto de árboles de decisión. Es especialmente util para tareas de clasificacion por lo tanto es un buen candidato para usarlo en esta tarea.
+
+Para ellos vamos primero a ver que hiperparametros nos ofrece caret de forma directa para usar.
+
+```{r}
+modelLookup(("rf"))
+```
+
+En este caso solo disponemos de un hiperparametro gestionado por caret, esto significa que en tuneGrid no podemo sponer mas hiperparametros de random forest porque caret no lo sabe gestionar por lo que tendremos que introducirlos manualmente en el train(). Dentro de los demas hiperparamentros existentes vamos a probar tambien ntree que es el numero de arboles de decision, para ello crearemos un bucle y entrenaremos modelos segun para cada numero de arboles.
+
+Creamos el grid para el hiperparametros mtry.
+
+```{r}
+rf.grid <- expand.grid(mtry = c(2, 4, 6, 8))
+```
+
+
+## Configuraciones de trainControl
+
+Vamos usar trainControl() para configurar procesos del entrenamiento donde vamos a poner una configuracion habitual recomendada por el caret la cual consiste en cross validacion cruzada de 10 plieges y 3 repeticiones. Ademas vamos a usar twoClassSummary junto con ROC ya que proporciona métricas robustas que evalúan el desempeño del modelo considerando todos los posibles umbrales de decisión. ROC es especialmente útil para comparar modelos, ya que mide la capacidad de separar correctamente las clases positivas y negativas, independientemente del balanceo entre ellas.
+
+```{r}
+rf.trainControl.3cv10.twoSummary.roc <- trainControl(
+  method = "repeatedcv",
+  number = 10,
+  repeats = 3,
+  # No mostramos el proceso porque seria muy extenso
+  verboseIter = FALSE,
+  # Métricas adicionales como ROC (para clasificación binaria)
+  summaryFunction = twoClassSummary,
+  # Necesario si queremos usar roc
+  classProbs = TRUE,
+  # Guardamos todo para hacer diagramas
+  returnResamp = "all"
+)
+```
+
+## Preprocesado de datos para el modelo
+
+### Imputando valores NA
+
+El modelo random forest no permite valores NA por lo que usaremos la base de datos cuyos valores NA estan imputados, comprobamos que efectivamente no existe valores NA en la base de datos que vamos a usar.
+
+```{r}
+any(is.na(credit.Datos.Train.imp))
+```
+
+Por lo demas nuestra base de datos a priori es apta para el entrenamiento
+
+```{r}
+
+varObjetivo <- "V16" # Cambia esto por tu variable de salida
+varsPredictoras <- setdiff(names(credit.Datos.Train.imp), varObjetivo)
+```
+
+### Eliminando valores NA
+
+Otra manera de preprocesar los datos para el random forest es eliminando los valores NA, para ello usamos los siguiente.
+
+```{r}
+credit.Datos.Train.EliminadoNA <- na.omit(credit.Datos.Train)
+credit.Datos.Test.EliminadoNA <- na.omit(credit.Datos.Test)
+```
+
+```{r}
+
+varObjetivo <- "V16" # Cambia esto por tu variable de salida
+varsPredictoras <- setdiff(names(credit.Datos.Train.EliminadoNA), varObjetivo)
+```
+
+## Entrenamiento
+
+### Imputando datos NA
+
+Ahora procedemos a entrenar nuestro primer modelo de random forest
+
+```{r}
+
+# Entrenamiento para 100 arboles
+set.seed(123)
+rf.modelo.3cv10.twoSummary.roc.100 <- train(
+  x = credit.Datos.Train.imp[varsPredictoras],
+  y = credit.Datos.Train.imp[[varObjetivo]],
+  method = "rf", 
+  metric = "ROC",
+  trControl = rf.trainControl.3cv10.twoSummary.roc,
+  tuneGrid = rf.grid,
+  ntree = 100
+)
+
+# Entrenamiento para 500 arboles
+set.seed(123)
+rf.modelo.3cv10.twoSummary.roc.500 <- train(
+  x = credit.Datos.Train.imp[varsPredictoras],
+  y = credit.Datos.Train.imp[[varObjetivo]],
+  method = "rf", 
+  metric = "ROC",
+  trControl = rf.trainControl.3cv10.twoSummary.roc,
+  tuneGrid = rf.grid,
+  ntree = 500
+)
+
+# Entrenamiento para 1000 arboles
+set.seed(123)
+rf.modelo.3cv10.twoSummary.roc.1000 <- train(
+  x = credit.Datos.Train.imp[varsPredictoras],
+  y = credit.Datos.Train.imp[[varObjetivo]],
+  method = "rf", 
+  metric = "ROC",
+  trControl = rf.trainControl.3cv10.twoSummary.roc,
+  tuneGrid = rf.grid,
+  ntree = 1000
+)
+
+print(rf.modelo.3cv10.twoSummary.roc.100$results$ROC[4])
+```
+Mostramos los resultado.
+
+```{r}
+# Crear un data.frame con los resultados
+resultados_df <- data.frame(
+  mtry = rep(c(2, 4, 6, 8), times = 3), # Repetimos 4 valores de mtry, una vez por modelo
+  ntree = rep(c(100, 500, 1000), each = 4), # 3 modelos, cada uno con 4 mtry
+  ROC = c(
+    rf.modelo.3cv10.twoSummary.roc.100$results$ROC[1:4], 
+    rf.modelo.3cv10.twoSummary.roc.500$results$ROC[1:4], 
+    rf.modelo.3cv10.twoSummary.roc.1000$results$ROC[1:4]
+
+        )   
+)
+
+# Crear el histograma
+ggplot(resultados_df, aes(x = as.factor(mtry), y = ROC, fill = as.factor(ntree))) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(
+    title = "ROC según Número de mtry y Número de Árboles (imputados NA)",
+    x = "Número de mtry",
+    y = "ROC",
+    fill = "Número de Árboles (ntree)"
+  ) +
+  scale_fill_manual(values = c("100" = "green", "500" = "purple", "1000" = "red")) +
+  theme_minimal() +
+  theme(legend.position = "bottom") +
+  coord_cartesian(ylim = c(0.9, 1))  # Ajustar el rango del eje Y
+```
+
+
+
+### Eliminando datos NA
+
+Repetimos el mismo codigo pero esta vez para la base con los datos NA eliminados.
+
+```{r}
+
+# Entrenamiento para 100 arboles
+set.seed(123)
+rf.modelo.3cv10.twoSummary.roc.100.eliminadoNA <- train(
+  x = credit.Datos.Train.EliminadoNA[varsPredictoras],
+  y = credit.Datos.Train.EliminadoNA[[varObjetivo]],
+  method = "rf", 
+  metric = "ROC",
+  trControl = rf.trainControl.3cv10.twoSummary.roc,
+  tuneGrid = rf.grid,
+  ntree = 100
+)
+
+# Entrenamiento para 500 arboles
+set.seed(123)
+rf.modelo.3cv10.twoSummary.roc.500.eliminadoNA <- train(
+  x = credit.Datos.Train.EliminadoNA[varsPredictoras],
+  y = credit.Datos.Train.EliminadoNA[[varObjetivo]],
+  method = "rf", 
+  metric = "ROC",
+  trControl = rf.trainControl.3cv10.twoSummary.roc,
+  tuneGrid = rf.grid,
+  ntree = 500
+)
+
+# Entrenamiento para 1000 arboles
+set.seed(123)
+rf.modelo.3cv10.twoSummary.roc.1000.eliminadoNA <- train(
+  x = credit.Datos.Train.EliminadoNA[varsPredictoras],
+  y = credit.Datos.Train.EliminadoNA[[varObjetivo]],
+  method = "rf", 
+  metric = "ROC",
+  trControl = rf.trainControl.3cv10.twoSummary.roc,
+  tuneGrid = rf.grid,
+  ntree = 1000
+)
+```
+
+Mostramos los resultados.
+
+```{r}
+# Crear un data.frame con los resultados
+resultados_df <- data.frame(
+  mtry = rep(c(2, 4, 6, 8), times = 3), # Repetimos 4 valores de mtry, una vez por modelo
+  ntree = rep(c(100, 500, 1000), each = 4), # 3 modelos, cada uno con 4 mtry
+  ROC = c(
+    rf.modelo.3cv10.twoSummary.roc.100.eliminadoNA$results$ROC[1:4], 
+    rf.modelo.3cv10.twoSummary.roc.500.eliminadoNA$results$ROC[1:4], 
+    rf.modelo.3cv10.twoSummary.roc.1000.eliminadoNA$results$ROC[1:4]
+
+        )   
+)
+
+# Crear el histograma
+ggplot(resultados_df, aes(x = as.factor(mtry), y = ROC, fill = as.factor(ntree))) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(
+    title = "ROC según Número de mtry y Número de Árboles (Eliminados NA)",
+    x = "Número de mtry",
+    y = "ROC",
+    fill = "Número de Árboles (ntree)"
+  ) +
+  scale_fill_manual(values = c("100" = "green", "500" = "purple", "1000" = "red")) +
+  theme_minimal() +
+  theme(legend.position = "bottom") +
+  coord_cartesian(ylim = c(0.9, 1))  # Ajustar el rango del eje Y
+```
+
+## Test de modelos
+
+Probamos los distintos modelos que hemos entrenado para ver cual tiene mejor prediccion
+
+```{r}
+
+# 9. Guardar el modelo entrenado
+#saveRDS(modelo_rf, "modelo_rf.rds")
+
+
+prediccion.rf.modelo.3cv10.twoSummary.roc.100 <- predict(rf.modelo.3cv10.twoSummary.roc.100, newdata = credit.Datos.Test.imp[varsPredictoras])
+
+prediccion.rf.modelo.3cv10.twoSummary.roc.500 <- predict(rf.modelo.3cv10.twoSummary.roc.500, newdata = credit.Datos.Test.imp[varsPredictoras])
+
+prediccion.rf.modelo.3cv10.twoSummary.roc.1000 <- predict(rf.modelo.3cv10.twoSummary.roc.1000, newdata = credit.Datos.Test.imp[varsPredictoras])
+
+prediccion.rf.modelo.3cv10.twoSummary.roc.100.eliminadoNA <- predict(rf.modelo.3cv10.twoSummary.roc.100.eliminadoNA, newdata = credit.Datos.Test.imp[varsPredictoras])
+
+prediccion.rf.modelo.3cv10.twoSummary.roc.500.eliminadoNA <- predict(rf.modelo.3cv10.twoSummary.roc.500.eliminadoNA, newdata = credit.Datos.Test.imp[varsPredictoras])
+
+prediccion.rf.modelo.3cv10.twoSummary.roc.1000.eliminadoNA <- predict(rf.modelo.3cv10.twoSummary.roc.1000.eliminadoNA, newdata = credit.Datos.Test.imp[varsPredictoras])
+
+
+
+```
+## Comparativa de modelos
+
+Vemos los resultados
+
+```{r}
+# Generar matriz de confusión
+matrizConfusion.rf.modelo.3cv10.twoSummary.roc.100 <- confusionMatrix(
+  data = prediccion.rf.modelo.3cv10.twoSummary.roc.100,
+  reference = credit.Datos.Test[[varObjetivo]],
+  positive = "aprobada" # Cambia esto por la clase objetivo positiva
+)
+
+matrizConfusion.rf.modelo.3cv10.twoSummary.roc.500 <- confusionMatrix(
+  data = prediccion.rf.modelo.3cv10.twoSummary.roc.500,
+  reference = credit.Datos.Test[[varObjetivo]],
+  positive = "aprobada" # Cambia esto por la clase objetivo positiva
+)
+
+matrizConfusion.rf.modelo.3cv10.twoSummary.roc.1000 <- confusionMatrix(
+  data = prediccion.rf.modelo.3cv10.twoSummary.roc.1000,
+  reference = credit.Datos.Test[[varObjetivo]],
+  positive = "aprobada" # Cambia esto por la clase objetivo positiva
+)
+
+matrizConfusion.rf.modelo.3cv10.twoSummary.roc.100.eliminadoNA <- confusionMatrix(
+  data = prediccion.rf.modelo.3cv10.twoSummary.roc.100.eliminadoNA,
+  reference = credit.Datos.Test[[varObjetivo]],
+  positive = "aprobada" # Cambia esto por la clase objetivo positiva
+)
+
+matrizConfusion.rf.modelo.3cv10.twoSummary.roc.500.eliminadoNA <- confusionMatrix(
+  data = prediccion.rf.modelo.3cv10.twoSummary.roc.500.eliminadoNA,
+  reference = credit.Datos.Test[[varObjetivo]],
+  positive = "aprobada" # Cambia esto por la clase objetivo positiva
+)
+
+matrizConfusion.rf.modelo.3cv10.twoSummary.roc.1000.eliminadoNA <- confusionMatrix(
+  data = prediccion.rf.modelo.3cv10.twoSummary.roc.1000.eliminadoNA,
+  reference = credit.Datos.Test[[varObjetivo]],
+  positive = "aprobada" # Cambia esto por la clase objetivo positiva
+)
+
+# Extraer Accuracy de las matrices de confusión
+accuracy_imputados <- c(
+  matrizConfusion.rf.modelo.3cv10.twoSummary.roc.100$overall["Accuracy"] * 100,
+  matrizConfusion.rf.modelo.3cv10.twoSummary.roc.500$overall["Accuracy"] * 100,
+  matrizConfusion.rf.modelo.3cv10.twoSummary.roc.1000$overall["Accuracy"] * 100
+)
+
+accuracy_eliminados <- c(
+  matrizConfusion.rf.modelo.3cv10.twoSummary.roc.100.eliminadoNA$overall["Accuracy"] * 100,
+  matrizConfusion.rf.modelo.3cv10.twoSummary.roc.500.eliminadoNA$overall["Accuracy"] * 100,
+  matrizConfusion.rf.modelo.3cv10.twoSummary.roc.1000.eliminadoNA$overall["Accuracy"] * 100
+)
+
+# Crear un data frame con los resultados
+resultados <- data.frame(
+  Numero_Arboles = rep(c(100, 500, 1000), times = 2),
+  Tipo_Datos = rep(c("Imputados", "Eliminados"), each = 3),
+  Accuracy = c(accuracy_imputados, accuracy_eliminados)
+)
+
+
+# Crear el histograma
+ggplot(resultados, aes(x = as.factor(Numero_Arboles), y = Accuracy, fill = Tipo_Datos)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(
+    title = "Accuracy por Número de Árboles y Tratamiento de NA",
+    x = "Número de Árboles",
+    y = "Accuracy (%)",
+    fill = "Tipo de Datos"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "bottom") +
+   coord_cartesian(ylim = c(80, 100)) +
+  scale_fill_manual(values = c("Imputados" = "blue", "Eliminados" = "orange"))
+
+
+```
+
+## Postprocesado rf
+
+```{r}
+
+varImp(modelo_rf)
+```
+
+La variable V7 la podriamos eliminar para el modelo ya que apenas tiene impacto
+
+```{r}
+predictors(modelo_rf$finalModel)
+
+```
+
+
+## Redes neuronales
+
+Pasamos ahroa a entrenar el modelo de redes neuronales, primero vemis los posibkes hiperparametros disponbles que tiene:
+
+```{r}
+modelLookup(("nnet"))
+```
+
+Caret no sofrece dos hiperparametros facilmente accesibles que son el size referente al numero de nodos en la capa oculta y decay que es el parametro de regularización por lo que creamos un grid para ellos.
+
+```{r}
+nnetGrid <- expand.grid(
+  size = c(1, 3, 5, 7),
+  decay = c(0, 0.01, 0.1, 0.2)
+)
+```
+
+### Configaración de trainControl()
+
+Usamos la misma configuaración que en random forest
+
+```{r}
+nnet.trainControl <- trainControl(
+  method = "repeatedcv",
+  number = 10,
+  repeats = 3,
+  verboseIter = FALSE,
+  classProbs = TRUE,
+  summaryFunction = twoClassSummary,
+  returnResamp = "all"
+)
+```
+
+### Preprocesado
+
+
+## Entrenamiento
+
+
+
+
+```{r}
+set.seed(123)
+nnet.train <- train(
+  x = credit.Datos.Train.imp[varsPredictoras],
+  y = credit.Datos.Train.imp[[varObjetivo]],
+  method = "nnet",
+  trControl = nnet.trainControl,
+  tuneGrid = nnetGrid,               # Grid de hiperparámetros
+  trace = FALSE,                            # Evita imprimir mensajes internos de nnet
+  maxit = 200                               # Número máximo de iteraciones
+)
+
+print(nnet.train)
+plot(nnet.train)
+
+```
+
+```{r}
+
+
+
+# 7. Evaluar el modelo en el conjunto de prueba
+# Predicción en el conjunto de prueba
+predicciones_nnet <- predict(modelo_nnet, newdata = credit.Datos.Test[vars_predictoras])
+
+# Matriz de confusión
+matrizConfusionNNET <- confusionMatrix(
+  data = predicciones_nnet,
+  reference = credit.Datos.Test[[var_objetivo]],
+  positive = "aprobada" # Cambia esto por el nivel positivo correcto
+)
+
+
+
+# Extraer y mostrar el porcentaje de aciertos (Accuracy)
+print(paste("Porcentaje de aciertos: ", round(matrizConfusionNNET$overall["Accuracy"] * 100, 2), "%", sep = ""))
+
+```
+
+
