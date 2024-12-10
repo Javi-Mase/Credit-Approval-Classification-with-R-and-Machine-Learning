@@ -1924,7 +1924,7 @@ rf.trainControl.3cv10.twoSummary.roc <- trainControl(
 )
 ```
 
-### Preprocesado de datos para el modelo
+### Preprocesado de datos
 
 #### Imputando valores NA
 
@@ -2370,7 +2370,7 @@ varObjetivo <- "V16"
 varsPredictoras <- setdiff(names(credit.Datos.Train.Knn), varObjetivo)
 ```
 
-#### Imputación de valores nA
+#### Imputación de valores NA
 
 Nnet no puede maneja valores NA por lo que usaremos la base de datos donde los valores NA estan imputados.
 
