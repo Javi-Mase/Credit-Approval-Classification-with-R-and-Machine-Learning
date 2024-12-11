@@ -1896,35 +1896,13 @@ Para empezar vamos a ver que hiperparametros nos ofrece caret del random forest.
 modelLookup(("rf"))
 ```
 
-En este caso solo disponemos de un hiperparámetro gestionado por caret, esto significa que en tuneGrid no podemo sponer mas hiperparametros de random forest porque caret no lo sabe gestionar por lo que tendremos que introducirlos manualmente en el train(). Dentro de los demas hiperparamentros existentes vamos a probar tambien ntree que es el numero de arboles de decision, para ello crearemos un bucle y entrenaremos modelos segun para cada numero de arboles.
-
-Creamos el grid para el hiperparametros mtry.
-
-```{r}
-rf.grid <- expand.grid(mtry = c(1, 2, 6, 10))
-```
-
-### Configuraciones de trainControl
-
-Vamos usar trainControl() para configurar procesos del entrenamiento donde vamos a poner una configuracion habitual recomendada por el caret la cual consiste en cross validacion cruzada de 10 plieges y 3 repeticiones. Ademas vamos a usar twoClassSummary junto con ROC ya que proporciona métricas robustas que evalúan el desempeño del modelo considerando todos los posibles umbrales de decisión. ROC es especialmente útil para comparar modelos, ya que mide la capacidad de separar correctamente las clases positivas y negativas, independientemente del balanceo entre ellas.
-
-```{r}
-rf.trainControl.3cv10.twoSummary.roc <- trainControl(
-  method = "repeatedcv",
-  number = 10,
-  repeats = 3,
-  # No mostramos el proceso porque seria muy extenso
-  verboseIter = FALSE,
-  # Métricas adicionales como ROC (para clasificación binaria)
-  summaryFunction = twoClassSummary,
-  # Necesario si queremos usar roc
-  classProbs = TRUE,
-  # Guardamos todo para hacer diagramas
-  returnResamp = "all"
-)
-```
+En este caso solo disponemos de un hiperparámetro gestionado por caret, esto significa que en tuneGrid no podemos sponer mas hiperparametros de random forest porque caret no lo sabe gestionar por lo que tendremos que introducirlos manualmente en el train(). Dentro de los demas hiperparamentros existentes vamos a probar tambien ntree que es el numero de arboles de decision, para ello crearemos un bucle y entrenaremos modelos segun para cada numero de arboles.
 
 ### Preprocesado de datos
+
+En cuanto al preprocesado de datos para random forest no es muy exigente. RF no se ve afectado por la escala de las variables porque utiliza arboles de decision por lo tanto obviamos la normalizacion. RF tambien maneja bastante bien las variables altamente correlacionadas.
+
+Lo que no sabe gestioniar RF son los valores NA por lo que ahi si que haremos un preprocesado de los datos. Trataremos este tema de dos formas distintas, imputando los valores NA y eliminandolos y asi veremos cual de las dos tecnicas ofrece mejores resultados.
 
 #### Imputando valores NA
 
@@ -1964,6 +1942,30 @@ varsPredictoras <- setdiff(names(credit.Datos.Train.EliminadoNA), varObjetivo)
 ```
 
 ### Entrenamiento
+
+Vamos usar trainControl() para configurar procesos del entrenamiento donde vamos a poner una configuracion habitual recomendada por el caret la cual consiste en cross validacion cruzada de 10 plieges y 3 repeticiones. Ademas vamos a usar twoClassSummary junto con ROC ya que proporciona métricas robustas que evalúan el desempeño del modelo considerando todos los posibles umbrales de decisión. ROC es especialmente útil para comparar modelos, ya que mide la capacidad de separar correctamente las clases positivas y negativas, independientemente del balanceo entre ellas.
+
+```{r}
+rf.trainControl.3cv10.twoSummary.roc <- trainControl(
+  method = "repeatedcv",
+  number = 10,
+  repeats = 3,
+  # No mostramos el proceso porque seria muy extenso
+  verboseIter = FALSE,
+  # Métricas adicionales como ROC (para clasificación binaria)
+  summaryFunction = twoClassSummary,
+  # Necesario si queremos usar roc
+  classProbs = TRUE,
+  # Guardamos todo para hacer diagramas
+  returnResamp = "all"
+)
+```
+
+Creamos el grid para el hiperparametros mtry.
+
+```{r}
+rf.grid <- expand.grid(mtry = c(1, 2, 4, 6, 10))
+```
 
 Ahora procederemos a entrenar modelos de random forest, vamos a distinguir dos subsecciones de entrenamiento. El entrenamiento con los valores NA imputados y el entrenamiento con los valores NA eliminados.
 
@@ -2008,11 +2010,9 @@ rf.modelo.3cv10.twoSummary.roc.1000 <- train(
   tuneGrid = rf.grid,
   ntree = 1000
 )
-
-print(rf.modelo.3cv10.twoSummary.roc.100$results$ROC[4])
 ```
 
-Vamos a ver con el siguiente codigo cual es el maximo ROC de cada uno de los modelos y para que hiperparametro, recordemos que cuanto mas cercanos sea el ROC a uno mejor predicciones tendrá el modelo.
+Vamos a ver con el siguiente codigo cual es el maximo ROC de cada uno de los modelos y para que hiperparametro, recordemos que cuanto mas cercanos sea el ROC a uno mejores predicciones tendrá el modelo.
 
 ```{r}
 maxIndexRf100 <- which.max(rf.modelo.3cv10.twoSummary.roc.100$results$ROC)
@@ -2053,19 +2053,20 @@ cat("Corresponde a mtry:", mtry1000, "\n")
 
 ```
 
-Vemos que probablemente el modelo se comporta mejor con valores pequeños de mtry. Ahora vemos una comparativa segun el nummero de arboles.
+Vemos que probablemente el modelo se comporta mejor con valores de entre 2 y 4 de mtry. 
+
+Ahora veamos una comparativa segun el nummero de arboles.
 
 ```{r}
 # Crear un data.frame con los resultados
 resultados_df <- data.frame(
-  mtry = rep(c(1, 2, 6, 10), times = 3), # Repetimos 4 valores de mtry, una vez por modelo
-  ntree = rep(c(100, 500, 1000), each = 4), # 3 modelos, cada uno con 4 mtry
+  mtry = rep(c(1, 2, 4, 6, 10), times = 3), # Repetimos 5 valores de mtry, una vez por modelo
+  ntree = rep(c(100, 500, 1000), each = 5), # 3 modelos, cada uno con 5 valores de mtry
   ROC = c(
-    rf.modelo.3cv10.twoSummary.roc.100$results$ROC[1:4], 
-    rf.modelo.3cv10.twoSummary.roc.500$results$ROC[1:4], 
-    rf.modelo.3cv10.twoSummary.roc.1000$results$ROC[1:4]
-
-        )   
+    rf.modelo.3cv10.twoSummary.roc.100$results$ROC[1:5], 
+    rf.modelo.3cv10.twoSummary.roc.500$results$ROC[1:5], 
+    rf.modelo.3cv10.twoSummary.roc.1000$results$ROC[1:5]
+  )   
 )
 
 # Crear el histograma
@@ -2081,6 +2082,7 @@ ggplot(resultados_df, aes(x = as.factor(mtry), y = ROC, fill = as.factor(ntree))
   theme_minimal() +
   theme(legend.position = "bottom") +
   coord_cartesian(ylim = c(0.9, 1))  # Ajustar el rango del eje Y
+  # Ajustar el rango del eje Y
 ```
 
 Se puede ver que la diferencia entre 500 y 1000 arboles es muy pequeña por lo que poner 1000 arboles no merece la pena ya que conlleva mucho tiempo de ejecución.
@@ -2168,25 +2170,25 @@ cat("Corresponde a mtry:", mtry1000Eliminado, "\n")
 
 
 ```
+Podemos observar que en cuanto al ROC los valores no difieren a penas de los entrenamientos con los datos NA imputados, veremos ahora como se comportan en los test. Lo que si podemos decir es que siguen una forma parecida a los entrenamientos anteriores, es decir, el valor mtry 4 es el que mejor resultados nos da y que a partir de 500 arboles no mejora mucho la precision del modelo.
 
 ```{r}
 # Crear un data.frame con los resultados
 resultados_df <- data.frame(
-  mtry = rep(c(1, 2, 6, 8, 10), times = 3), # Repetimos 4 valores de mtry, una vez por modelo
-  ntree = rep(c(100, 500, 1000), each = 4), # 3 modelos, cada uno con 4 mtry
+  mtry = rep(c(1, 2, 4, 6, 10), times = 3), # Repetimos 5 valores de mtry, una vez por modelo
+  ntree = rep(c(100, 500, 1000), each = 5), # 3 modelos, cada uno con 5 valores de mtry
   ROC = c(
-    rf.modelo.3cv10.twoSummary.roc.100.eliminadoNA$results$ROC[1:4], 
-    rf.modelo.3cv10.twoSummary.roc.500.eliminadoNA$results$ROC[1:4], 
-    rf.modelo.3cv10.twoSummary.roc.1000.eliminadoNA$results$ROC[1:4]
-
-        )   
+    rf.modelo.3cv10.twoSummary.roc.100.eliminadoNA$results$ROC[1:5], 
+    rf.modelo.3cv10.twoSummary.roc.500.eliminadoNA$results$ROC[1:5], 
+    rf.modelo.3cv10.twoSummary.roc.1000.eliminadoNA$results$ROC[1:5]
+  )   
 )
 
 # Crear el histograma
 ggplot(resultados_df, aes(x = as.factor(mtry), y = ROC, fill = as.factor(ntree))) +
   geom_bar(stat = "identity", position = "dodge") +
   labs(
-    title = "ROC según Número de mtry y Número de Árboles (Eliminados NA)",
+    title = "ROC según Número de mtry y Número de Árboles (imputados NA)",
     x = "Número de mtry",
     y = "ROC",
     fill = "Número de Árboles (ntree)"
@@ -2195,16 +2197,23 @@ ggplot(resultados_df, aes(x = as.factor(mtry), y = ROC, fill = as.factor(ntree))
   theme_minimal() +
   theme(legend.position = "bottom") +
   coord_cartesian(ylim = c(0.9, 1))  # Ajustar el rango del eje Y
+  # Ajustar el rango del eje Y
 ```
+
+Ahora antes de testear los modelos, vamos a hacer un nuevo entrenamiento con los hiperparametros que mejor resultado han dado:
+
+```{r}
+
+
+```
+
+Una vez tenemos los nuevos modelos entrenados pasamos al testeo.
 
 ### Test de modelos
 
 Probamos los distintos modelos que hemos entrenado para ver cual tiene mejor prediccion, esto lo hacemos sobre nuestro conjunto test.
 
 ```{r}
-
-# 9. Guardar el modelo entrenado
-#saveRDS(modelo_rf, "modelo_rf.rds")
 
 # Entrenamiento con valores NA imputados
 prediccion.rf.modelo.3cv10.twoSummary.roc.100 <- predict(rf.modelo.3cv10.twoSummary.roc.100, newdata = credit.Datos.Test.imp[varsPredictoras])
@@ -2224,7 +2233,7 @@ prediccion.rf.modelo.3cv10.twoSummary.roc.1000.eliminadoNA <- predict(rf.modelo.
 
 ### Comparativa de modelos
 
-Vemos los resultados
+Veamos los resultados
 
 ```{r}
 # Generar matriz de confusión
@@ -2324,7 +2333,7 @@ Vemos que la V7 tiene un impacto infimos en todos los modelos por lo que vamos a
 predictors(rf.modelo.3cv10.twoSummary.roc.100$finalModel)
 ```
 
-
+### Reentrenamiento y testeo
 
 ## Redes neuronales
 
