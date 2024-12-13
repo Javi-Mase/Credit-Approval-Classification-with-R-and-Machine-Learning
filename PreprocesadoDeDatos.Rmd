@@ -2452,8 +2452,7 @@ ggplot(resultados_df, aes(x = as.factor(mtry), y = ROC, fill = as.factor(ntree))
   scale_fill_manual(values = c("100" = "green", "500" = "purple", "1000" = "red")) +
   theme_minimal() +
   theme(legend.position = "bottom") +
-  coord_cartesian(ylim = c(0.9, 1))  # Ajustar el rango del eje Y
-  # Ajustar el rango del eje Y
+  coord_cartesian(ylim = c(0.9, 1))
 ```
 
 Se puede ver que la diferencia entre 500 y 1000 arboles es muy pequeña por lo que poner 1000 arboles no merece la pena ya que conlleva mucho tiempo de ejecución.
@@ -2678,6 +2677,7 @@ ggplot(resultados, aes(x = as.factor(Numero_Arboles), y = Accuracy, fill = Tipo_
 
 
 ```
+
 Vemos que con el numero de arboles de 100 es como mejor resultados esta dando.
 
 ### Reentrenamiento y testeo
@@ -3155,6 +3155,21 @@ Amat Rodrigo, J. (n.d.). Redes neuronales con R. Recuperado de https://cienciade
 ISGlobal BRGE. (n.d.). La librería caret. Recuperado de https://isglobal-brge.github.io/curso_machine_learning/caret.html
 
 # Conclusiónes finales
+
+```{r}
+pima.modelList.3cv10.tl7.rsAll.Acc<-list(
+  KNN=credit.modelo.knn
+ ,SVM=credit.modelo.final.svm
+ ,RF=rf.modelo.3cv10.twoSummary.roc.100.final
+ ,GBM=modelo_final_gbm
+ ,NNET=nnet.train.100.final
+ )
+
+pima.resamps.3cv10.tl7.rsAll.Acc<-resamples(pima.modelList.3cv10.tl7.rsAll.Acc)
+summary(pima.modelList.3cv10.tl7.rsAll.Acc)
+
+```
+
 
 En este trabajo, hemos evaluado múltiples modelos de aprendizaje automático, considerando tanto su rendimiento como los requisitos de preprocesado. Cada modelo ha mostrado fortalezas y debilidades, lo que nos permite reflexionar sobre su idoneidad según las necesidades específicas:
 
