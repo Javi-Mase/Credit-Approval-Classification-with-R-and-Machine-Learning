@@ -191,17 +191,9 @@ porcent_casados
 
 Si buscamos en internet en torno al 70% de la población adulta en Estados Unidos estaba casada. Como podemos ver se aproxima mucho a nuestro resultado. Esa pequeña diferencia puede deberse a que muchos matrimonios al casarse, compran una casa, y piden un préstamo para ello.
 
-Observamos en V4 que hay un elemento que no aparece y es necesario añadir.
-
 ```{r}
-# Eliminamos niveles no usados
-#credit$V4 <- droplevels(credit$V4)
 
-# Ahora vamos a añadir un elemento que no aparece y luego lo hacemos factor
-#levels(credit$V4)<-c(levels(credit$V4),"t")
 str(credit$V4)
-
-
 ```
 
 ## V6
@@ -1684,7 +1676,7 @@ for (i in seq_along(configuracion_svm)) {
     x = credit.Datos.svm.Train[, credit.Vars.Entrada.Usadas],
     y = credit.Datos.svm.Train[[credit.Var.Salida.Usada]],
     method = "svmRadial",
-    trControl = credit.trainCtrl.3cv10.resampAll,
+    trControl = credit.trainCtrl,
     tuneGrid = data.frame(
       sigma = 0.03951598,              
       C = 1         
@@ -2587,6 +2579,7 @@ ggplot(resultados, aes(x = Modelo, y = Accuracy, fill = Modelo)) +
   theme(legend.position = "none") # Ocultar leyenda, ya que el eje X describe los modelos
 
 ```
+
 Vemos que el reentrenamiento con hiperparametros fijos solo ha resultado efecto en el modelo de 100 arboles.
 
 ### Postprocesado de datos
@@ -2608,6 +2601,7 @@ Vemos que la V7 es la que menos impacto tiene pero aun asi tiene el suficiente i
 Tenemos que nuestro modelo final ha dado un 86,86% de acierto y ademas de ser un porcentaje bastante alto, random forest no ha requerido un preprocesado tan extenso como en los modelos anteriores por lo que es una opcion bastante interesante.
 
 Nuestro modelo final seria:
+
 ```{r}
 print(rf.modelo.3cv10.twoSummary.roc.100.final)
 ```
@@ -2616,16 +2610,15 @@ print(rf.modelo.3cv10.twoSummary.roc.100.final)
 
 Aprendizaje Computacional. (s.f.). Análisis de datos y machine learning con R (caret). Versión 0.105 (pre-release)
 
-Fernández, A. (s.f.). Machine Learning en R con caret. Recuperado de https://anderfernandez.com/blog/machine-learning-caret-r/
+Fernández, A. (s.f.). Machine Learning en R con caret. Recuperado de <https://anderfernandez.com/blog/machine-learning-caret-r/>
 
-Prabhakaran, S. (2018). Caret Package – A Practical Guide to Machine Learning in R. Recuperado de https://www.machinelearningplus.com/machine-learning/caret-package/
+Prabhakaran, S. (2018). Caret Package – A Practical Guide to Machine Learning in R. Recuperado de <https://www.machinelearningplus.com/machine-learning/caret-package/>
 
-Barter, R. (2017). A basic tutorial of caret: the machine learning package in R. Recuperado de https://rebeccabarter.com/blog/2017-11-17-caret_tutorial
+Barter, R. (2017). A basic tutorial of caret: the machine learning package in R. Recuperado de <https://rebeccabarter.com/blog/2017-11-17-caret_tutorial>
 
-Guru99. (2023). R Random Forest Tutorial with Example. Recuperado de https://www.guru99.com/r-random-forest-tutorial.html
+Guru99. (2023). R Random Forest Tutorial with Example. Recuperado de <https://www.guru99.com/r-random-forest-tutorial.html>
 
-Escuela de Datos Vivos. (2019). Tutorial de creación de un random forest con caret en R [Video]. YouTube. Recuperado de https://www.youtube.com/watch?v=XnZyi5H8gU8
-
+Escuela de Datos Vivos. (2019). Tutorial de creación de un random forest con caret en R [Video]. YouTube. Recuperado de <https://www.youtube.com/watch?v=XnZyi5H8gU8>
 
 ## **Redes neuronales**
 
@@ -2638,7 +2631,6 @@ credit.Datos.nnet.Train <- credit.Datos.Train
 credit.Datos.nnet.Test <- credit.Datos.Test
 ```
 
-
 #### Imputación de valores NA
 
 Nnet no puede maneja valores NA por lo que imputaremos sus valores.
@@ -2647,7 +2639,6 @@ Nnet no puede maneja valores NA por lo que imputaremos sus valores.
 credit.Datos.nnet.Train <- credit.Datos.Train.imp
 credit.Datos.nnet.Test <- credit.Datos.Test.imp
 ```
-
 
 #### Normalización
 
@@ -2658,7 +2649,6 @@ ejecutar_configuracion("norm_range", "credit.Datos.nnet.Train", "credit.Datos.nn
 ejecutar_configuracion("norm_center_scale", "credit.Datos.nnet.Train", "credit.Datos.nnet.Test")
 ```
 
-
 #### Dummy
 
 nnet requiere que las variables categóricas se representen como variables dummy (una columna por cada nivel de la variable).
@@ -2666,7 +2656,6 @@ nnet requiere que las variables categóricas se representen como variables dummy
 ```{r}
 ejecutar_configuracion("dummy", "credit.Datos.nnet.Train", "credit.Datos.nnet.Test")
 ```
-
 
 #### Eliminación de variables con variancia cercana a cero.
 
@@ -2707,14 +2696,12 @@ nnet.trainControl <- trainControl(
 )
 ```
 
-
 Procedemos ahora a entrenar modelos, y como sucedica con el random forest, vamos a entrenar tres modelos correspondiente a distintos valores del hiperparamtro maxit (numero de iteraciones) que no esta manejado por caret y hay que introducirlo directamente en el train().
 
 ```{r}
 varObjetivo <- "V16"
 varsPredictoras <- setdiff(names(credit.Datos.nnet.Train), varObjetivo)
 ```
-
 
 ```{r}
 set.seed(123)
@@ -2794,6 +2781,7 @@ cat("El valor más alto de ROC para 1000 iteraciones es:", max_roc1000, "\n")
 cat("Corresponde a size:", corresponding_size1000, "y decay:", corresponding_decay1000, "\n")
 
 ```
+
 omo vemos el ROC varia muy levemente por lo que la mejor opción aparentemente es la de 100 itereaciónes ya que requerirá menos tiempo de computo con valores de size de 4 y un valor de dacay de 0.5. Vamos a verificar esto con las predicciones en el conjunto test.
 
 ### Test de modelos
@@ -2936,6 +2924,7 @@ ggplot(resultados, aes(x = Modelo, y = Accuracy, fill = Modelo)) +
   coord_cartesian(ylim = c(80, 90)) +
   theme(legend.position = "none") # Ocultar leyenda, ya que el eje X describe los modelos
 ```
+
 Con los hiperparametros fijos nos da incluso mejores resultados por lo que este será nuestro modelo final.
 
 ### Postprocesado de datos
@@ -2945,29 +2934,32 @@ Antes de elegir definitivamente el modelo vamos a hacer un postprocesado de los 
 ```{r}
 varImp(nnet.train.100.final)
 ```
-Vemos que no hay ninguna variable que se use "poco" por lo qu eno sería necesario hacer un postprocesado de los datos. 
+
+Vemos que no hay ninguna variable que se use "poco" por lo qu eno sería necesario hacer un postprocesado de los datos.
 
 ### Conclusión
 
 El modelo final de redes neuronales nos ha dado un porcentaje de acierto 84,67%, esta por debajo de otros modelos pero la ventaja que he detectado en este modelo es que a pesar de tener un preprocesado de datos mas complejo de random forest, funciona muy bien con iteraciones bajas lo que mejora mucho el tiempo de computo.
 
 Nuestro modelo final es por tanto:
+
 ```{r}
 print(nnet.train.100.final)
 ```
+
 ### Bibliografía Redes Neuronales
 
 Aprendizaje Computacional. (s.f.). Análisis de datos y machine learning con R (caret). Versión 0.105 (pre-release)
 
-Amat Rodrigo, J. (n.d.). Machine Learning con R y caret. Recuperado de https://cienciadedatos.net/documentos/41_machine_learning_con_r_y_caret
+Amat Rodrigo, J. (n.d.). Machine Learning con R y caret. Recuperado de <https://cienciadedatos.net/documentos/41_machine_learning_con_r_y_caret>
 
-Fernández, A. (n.d.). Machine Learning en R con caret. Recuperado de https://anderfernandez.com/blog/machine-learning-caret-r/
+Fernández, A. (n.d.). Machine Learning en R con caret. Recuperado de <https://anderfernandez.com/blog/machine-learning-caret-r/>
 
-Charte, F. (2016). Redes neuronales con R. Recuperado de https://fcharte.com/tutoriales/20160203-R-RedesNeuronales/
+Charte, F. (2016). Redes neuronales con R. Recuperado de <https://fcharte.com/tutoriales/20160203-R-RedesNeuronales/>
 
-Amat Rodrigo, J. (n.d.). Redes neuronales con R. Recuperado de https://cienciadedatos.net/documentos/68-redes-neuronales-r
+Amat Rodrigo, J. (n.d.). Redes neuronales con R. Recuperado de <https://cienciadedatos.net/documentos/68-redes-neuronales-r>
 
-ISGlobal BRGE. (n.d.). La librería caret. Recuperado de https://isglobal-brge.github.io/curso_machine_learning/caret.html
+ISGlobal BRGE. (n.d.). La librería caret. Recuperado de <https://isglobal-brge.github.io/curso_machine_learning/caret.html>
 
 # Conclusiónes finales
 
