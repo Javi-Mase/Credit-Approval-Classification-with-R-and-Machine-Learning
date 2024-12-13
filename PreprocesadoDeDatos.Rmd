@@ -1584,7 +1584,7 @@ Terminamos este entrenamiento habiendo probado muchísimas configuraciones de pr
 
 **Nota:** Cabe destacar que hemos probado otro tipo de preprocesados como la eliminación de variables no usadas con frecuencia, sin conseguir prácticamente ninguna mejora, por eso consideramos no ponerlo.
 
-## SVM
+## **SVM**
 
 En primer lugar vamos a tratar de buscar información a cerca de las características del modelo. Gran parte de la información obtenida es de la siguiente pagina.\
 [https://medium.com/\@vdeshpande551/understanding-the-inner-workings-of-svm-from-data-preprocessing-to-model-deployment-cdc9d72a2d34](https://medium.com/@vdeshpande551/understanding-the-inner-workings-of-svm-from-data-preprocessing-to-model-deployment-cdc9d72a2d34){.uri}\
@@ -1960,7 +1960,7 @@ El modelo final sería:
 print(credit.modelo.final.svm)
 ```
 
-## KNN
+## **KNN**
 
 K-Nearest Neighbors (KNN) es un algoritmo de clasificación que predice la clase de una observación en función de las k observaciones más cercanas en el espacio de características. En nuestro caso, nos interesa aplicar KNN para clasificación.
 
@@ -2257,7 +2257,7 @@ Para el modelo de Knn, el mejor resultado lo obtenemos tras una normalización y
 print(credit.modelo.knn)
 ```
 
-## Random Forest
+## **Random Forest**
 
 El Random Forest es un algoritmo de aprendizaje automático basado en un conjunto de árboles de decisión. Es especialmente util para tareas de clasificacion por lo tanto es un buen candidato para usarlo en esta tarea.
 
@@ -2383,7 +2383,7 @@ rf.modelo.3cv10.twoSummary.roc.1000 <- train(
 )
 ```
 
-Vamos a ver con el siguiente codigo cual es el maximo ROC de cada uno de los modelos y para que hiperparametro, recordemos que cuanto mas cercanos sea el ROC a uno mejores predicciones tendrá el modelo.
+Vamos a ver con el siguiente código cual es el maximo ROC de cada uno de los modelos y para que hiperparametro, recordemos que cuanto más cercanos sea el ROC a uno mejores predicciones tendrá el modelo.
 
 ```{r}
 maxIndexRf100 <- which.max(rf.modelo.3cv10.twoSummary.roc.100$results$ROC)
@@ -2501,7 +2501,7 @@ rf.modelo.3cv10.twoSummary.roc.1000.eliminadoNA <- train(
 )
 ```
 
-Como en la subseccion anterior vemos qu evalor de mytry ha dado el valores mas alto.
+Como en la subseccion anterior vemos que valor de mytry ha dado el valores mas alto.
 
 ```{r}
 maxIndexRf100Eliminado <- which.max(rf.modelo.3cv10.twoSummary.roc.100.eliminadoNA$results$ROC)
@@ -2560,7 +2560,7 @@ resultados_df <- data.frame(
 ggplot(resultados_df, aes(x = as.factor(mtry), y = ROC, fill = as.factor(ntree))) +
   geom_bar(stat = "identity", position = "dodge") +
   labs(
-    title = "ROC según Número de mtry y Número de Árboles (imputados NA)",
+    title = "ROC según Número de mtry y Número de Árboles (Eliminados NA)",
     x = "Número de mtry",
     y = "ROC",
     fill = "Número de Árboles (ntree)"
@@ -2568,16 +2568,12 @@ ggplot(resultados_df, aes(x = as.factor(mtry), y = ROC, fill = as.factor(ntree))
   scale_fill_manual(values = c("100" = "green", "500" = "purple", "1000" = "red")) +
   theme_minimal() +
   theme(legend.position = "bottom") +
-  coord_cartesian(ylim = c(0.9, 1))  # Ajustar el rango del eje Y
+  coord_cartesian(ylim = c(0.9, 0.975))  # Ajustar el rango del eje Y
   # Ajustar el rango del eje Y
 ```
+Como pasaba con los valores NA imputados, ocurre lo mismo con los valores NA elimiandos que el rendimiento no mejores sustancialmente a partir de 500 arboles, es mas en algunos casos empeora por lo que 500 arboles es la mejor opción.
 
-Ahora antes de testear los modelos, vamos a hacer un nuevo entrenamiento con los hiperparametros que mejor resultado han dado:
-
-```{r}
-
-
-```
+Tambien se ve una ligera mejoria (casi descartable) respecto a los valores NA imptados, esto se puede deber a que un valor imputado esta dando mas informacion que un valor eliminado por lo que usaremos para futuros entrenamiento la base de datos con los NA imputados.
 
 Una vez tenemos los nuevos modelos entrenados pasamos al testeo.
 
@@ -2670,46 +2666,204 @@ resultados <- data.frame(
 ggplot(resultados, aes(x = as.factor(Numero_Arboles), y = Accuracy, fill = Tipo_Datos)) +
   geom_bar(stat = "identity", position = "dodge") +
   labs(
-    title = "Accuracy por Número de Árboles y Tratamiento de NA",
+    title = "Accuracy por Número de Árboles (NA eliminado)",
     x = "Número de Árboles",
     y = "Accuracy (%)",
     fill = "Tipo de Datos"
   ) +
   theme_minimal() +
   theme(legend.position = "bottom") +
-   coord_cartesian(ylim = c(80, 100)) +
+  coord_cartesian(ylim = c(80, 90)) +
   scale_fill_manual(values = c("Imputados" = "blue", "Eliminados" = "orange"))
 
 
 ```
-
-### Postprocesado de datos
-
-```{r}
-varImp(rf.modelo.3cv10.twoSummary.roc.100)
-
-varImp(rf.modelo.3cv10.twoSummary.roc.500)
-
-varImp(rf.modelo.3cv10.twoSummary.roc.1000)
-
-varImp(rf.modelo.3cv10.twoSummary.roc.100.eliminadoNA)
-
-varImp(rf.modelo.3cv10.twoSummary.roc.500.eliminadoNA)
-
-varImp(rf.modelo.3cv10.twoSummary.roc.1000.eliminadoNA)
-```
-
-Vemos que la V7 tiene un impacto infimos en todos los modelos por lo que vamos a eliminarla. También se podria considerar la eliminación de la variable de empleados pero hay algunos modelos que si que han hecho un uso considerable para no eliminarla.
-
-```{r}
-predictors(rf.modelo.3cv10.twoSummary.roc.100$finalModel)
-```
+Vemos que con el numero de arboles de 100 es como mejor resultados esta dando.
 
 ### Reentrenamiento y testeo
 
-## Redes neuronales
+Vamoa ahora a reentrenar los modelos con los mejores hiperparametros para evitar el peaking.
 
-Pasamos ahroa a entrenar el modelo de redes neuronales, primero vemis los posibkes hiperparametros disponbles que tiene:
+```{r}
+
+
+rf.grid.final.2 <- expand.grid(mtry = c(2))
+rf.grid.final.4 <- expand.grid(mtry = c(4))
+
+
+rf.modelo.3cv10.twoSummary.roc.100.final <- train(
+  x = credit.Datos.Train.imp[varsPredictoras],
+  y = credit.Datos.Train.imp[[varObjetivo]],
+  method = "rf", 
+  metric = "ROC",
+  trControl = rf.trainControl.3cv10.twoSummary.roc,
+  tuneGrid = rf.grid.final.2,
+  ntree = 100
+)
+
+rf.modelo.3cv10.twoSummary.roc.500.final <- train(
+  x = credit.Datos.Train.imp[varsPredictoras],
+  y = credit.Datos.Train.imp[[varObjetivo]],
+  method = "rf", 
+  metric = "ROC",
+  trControl = rf.trainControl.3cv10.twoSummary.roc,
+  tuneGrid = rf.grid.final.4,
+  ntree = 500
+)
+
+```
+
+Vamos a probar si ha dado mejores predicciones.
+
+```{r}
+
+prediccion.rf.modelo.3cv10.twoSummary.roc.100.final <- predict(rf.modelo.3cv10.twoSummary.roc.100.final, newdata = credit.Datos.Test.imp[varsPredictoras])
+
+prediccion.rf.modelo.3cv10.twoSummary.roc.500.final <- predict(rf.modelo.3cv10.twoSummary.roc.500.final, newdata = credit.Datos.Test.imp[varsPredictoras])
+
+```
+
+Vamos a comparar resultados.
+
+```{r}
+matrizConfusion.rf.modelo.3cv10.twoSummary.roc.100.final <- confusionMatrix(
+  data = prediccion.rf.modelo.3cv10.twoSummary.roc.100.final,
+  reference = credit.Datos.Test[[varObjetivo]],
+  positive = "aprobada" # Cambia esto por la clase objetivo positiva
+)
+
+matrizConfusion.rf.modelo.3cv10.twoSummary.roc.500.final <- confusionMatrix(
+  data = prediccion.rf.modelo.3cv10.twoSummary.roc.500.final,
+  reference = credit.Datos.Test[[varObjetivo]],
+  positive = "aprobada" # Cambia esto por la clase objetivo positiva
+)
+
+# Extraer Accuracy de las matrices de confusión
+accuracy_values <- c(
+  matrizConfusion.rf.modelo.3cv10.twoSummary.roc.100$overall["Accuracy"] * 100,
+  matrizConfusion.rf.modelo.3cv10.twoSummary.roc.100.final$overall["Accuracy"] * 100,
+  matrizConfusion.rf.modelo.3cv10.twoSummary.roc.500$overall["Accuracy"] * 100,
+  matrizConfusion.rf.modelo.3cv10.twoSummary.roc.500.final$overall["Accuracy"] * 100
+)
+
+# Crear un data frame con los resultados
+resultados <- data.frame(
+  Modelo = c("100 Árboles", "100 Árboles Final", "500 Árboles", "500 Árboles Final"),
+  Accuracy = accuracy_values
+)
+
+# Cargar ggplot2
+library(ggplot2)
+
+# Crear el histograma
+ggplot(resultados, aes(x = Modelo, y = Accuracy, fill = Modelo)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  geom_text(aes(label = round(Accuracy, 2)), vjust = -0.5) + # Agregar etiquetas con valores
+  labs(
+    title = "Accuracy de Modelos Random Forest",
+    x = "Modelo",
+    y = "Accuracy (%)"
+  ) +
+  scale_fill_manual(values = c("100 Árboles" = "blue", "100 Árboles Final" = "lightblue", 
+                               "500 Árboles" = "green", "500 Árboles Final" = "lightgreen")) +
+  theme_minimal() +
+  coord_cartesian(ylim = c(80, 90)) +
+  theme(legend.position = "none") # Ocultar leyenda, ya que el eje X describe los modelos
+
+```
+Vemos que el reentrenamiento con hiperparametros fijos solo ha resultado efecto en el modelo de 100 arboles.
+
+### Postprocesado de datos
+
+Antes de elegir definitivamente el modelo vamos a hacer un postprocesado de los datos y ver que variables se usan mas.
+
+```{r}
+varImp(rf.modelo.3cv10.twoSummary.roc.100)
+varImp(rf.modelo.3cv10.twoSummary.roc.100.final)
+
+varImp(rf.modelo.3cv10.twoSummary.roc.500)
+varImp(rf.modelo.3cv10.twoSummary.roc.500.final)
+
+```
+
+Vemos que la V7 es la que menos impacto tiene pero aun asi tiene el suficiente impacto como para no eliminarla ya que por ejemplo de la variable empleado distya de 4 puntos y de la edad de 9 puntos por lo que no me parece una decision correcta eliminarla y entrenar de nuevo el modelo.
+
+### Conclusión
+
+Tenemos que nuestro modelo final ha dado un 86,86% de acierto y ademas de ser un porcentaje bastante alto, random forest no ha requerido un preprocesado tan extenso como en los modelos anteriores por lo que es una opcion bastante interesante.
+
+Nuestro modelo final seria:
+```{r}
+print(rf.modelo.3cv10.twoSummary.roc.100.final)
+```
+
+### Bibliografía Random forest
+
+Aprendizaje Computacional. (s.f.). Análisis de datos y machine learning con R (caret). Versión 0.105 (pre-release)
+
+Fernández, A. (s.f.). Machine Learning en R con caret. Recuperado de https://anderfernandez.com/blog/machine-learning-caret-r/
+
+Prabhakaran, S. (2018). Caret Package – A Practical Guide to Machine Learning in R. Recuperado de https://www.machinelearningplus.com/machine-learning/caret-package/
+
+Barter, R. (2017). A basic tutorial of caret: the machine learning package in R. Recuperado de https://rebeccabarter.com/blog/2017-11-17-caret_tutorial
+
+Guru99. (2023). R Random Forest Tutorial with Example. Recuperado de https://www.guru99.com/r-random-forest-tutorial.html
+
+Escuela de Datos Vivos. (2019). Tutorial de creación de un random forest con caret en R [Video]. YouTube. Recuperado de https://www.youtube.com/watch?v=XnZyi5H8gU8
+
+
+## **Redes neuronales**
+
+### Preprocesado
+
+Vamos a ver a continuación que preprocesados son necesarios para el modelo de redes neuronales.
+
+```{r}
+credit.Datos.nnet.Train <- credit.Datos.Train
+credit.Datos.nnet.Test <- credit.Datos.Test
+```
+
+
+#### Imputación de valores NA
+
+Nnet no puede maneja valores NA por lo que imputaremos sus valores.
+
+```{r}
+credit.Datos.nnet.Train <- credit.Datos.Train.imp
+credit.Datos.nnet.Test <- credit.Datos.Test.imp
+```
+
+
+#### Normalización
+
+nnet es sensible a las magnitudes de las variables. Si los predictores tienen diferentes escalas (por ejemplo, ingresos en miles frente a edades en decenas), esto puede afectar negativamente al entrenamiento.
+
+```{r}
+ejecutar_configuracion("norm_range", "credit.Datos.nnet.Train", "credit.Datos.nnet.Test")
+ejecutar_configuracion("norm_center_scale", "credit.Datos.nnet.Train", "credit.Datos.nnet.Test")
+```
+
+
+#### Dummy
+
+nnet requiere que las variables categóricas se representen como variables dummy (una columna por cada nivel de la variable).
+
+```{r}
+ejecutar_configuracion("dummy", "credit.Datos.nnet.Train", "credit.Datos.nnet.Test")
+```
+
+
+#### Eliminación de variables con variancia cercana a cero.
+
+Variables altamente correlacionadas o con baja varianza pueden aumentar el tiempo de entrenamiento y provocar sobreajuste.
+
+```{r}
+ejecutar_configuracion("var_cero", "credit.Datos.nnet.Train", "credit.Datos.nnet.Test")
+```
+
+### Entrenamiento
+
+Pasamos ahora a entrenar el modelo de redes neuronales, primero vemos los posibles hiperparametros disponbles que tiene:
 
 ```{r}
 modelLookup(("nnet"))
@@ -2718,15 +2872,13 @@ modelLookup(("nnet"))
 Caret no sofrece dos hiperparametros facilmente accesibles que son el size referente al numero de nodos en la capa oculta y decay que es el parametro de regularización por lo que creamos un grid para ellos.
 
 ```{r}
-nnetGrid <- expand.grid(
-  size = c(1, 3, 5, 7, 10),
-  decay = c(0.01, 0.1, 0.5, 1, 2)
+nnet.Grid <- expand.grid(
+  size = c(1, 2, 3, 4, 7, 10),
+  decay = c(0.01, 0.1, 0.5, 0.6, 0.7, 1, 2)
 )
 ```
 
-### Configaración de trainControl()
-
-Usamos la misma configuaración que en random forest
+Para el train control usamos la misma configuaración que en random forest
 
 ```{r}
 nnet.trainControl <- trainControl(
@@ -2740,79 +2892,56 @@ nnet.trainControl <- trainControl(
 )
 ```
 
-### Preprocesado
-
-Todos los preprocesados siguientes ya han sido hechos y estan en la base de datos credit.Datos.Train.Knn por lo que la reutilizamos para evitar repetición de codigo. Por lo que simplemente los describiremos.
-
-Antes de nada creamos nuestra variable objetivo y nuestras variables predictoras.
-
-```{r}
-varObjetivo <- "V16"
-varsPredictoras <- setdiff(names(credit.Datos.Train.Knn), varObjetivo)
-```
-
-#### Imputación de valores NA
-
-Nnet no puede maneja valores NA por lo que usaremos la base de datos donde los valores NA estan imputados.
-
-#### Normalización
-
-nnet es sensible a las magnitudes de las variables. Si los predictores tienen diferentes escalas (por ejemplo, ingresos en miles frente a edades en decenas), esto puede afectar negativamente al entrenamiento.
-
-#### Dummy
-
-nnet requiere que las variables categóricas se representen como variables dummy (una columna por cada nivel de la variable).
-
-#### Eliminación de Predictores Irrelevantes o Redundantes
-
-Variables altamente correlacionadas o con baja varianza pueden aumentar el tiempo de entrenamiento y provocar sobreajuste.
-
-### Entrenamiento
 
 Procedemos ahora a entrenar modelos, y como sucedica con el random forest, vamos a entrenar tres modelos correspondiente a distintos valores del hiperparamtro maxit (numero de iteraciones) que no esta manejado por caret y hay que introducirlo directamente en el train().
 
 ```{r}
+varObjetivo <- "V16"
+varsPredictoras <- setdiff(names(credit.Datos.nnet.Train), varObjetivo)
+```
+
+
+```{r}
 set.seed(123)
 nnet.train.100 <- train(
-  x = credit.Datos.Train.Knn[varsPredictoras],
-  y = credit.Datos.Train.Knn[[varObjetivo]],
+  x = credit.Datos.nnet.Train[varsPredictoras],
+  y = credit.Datos.nnet.Train[[varObjetivo]],
   method = "nnet",
+  metric = "ROC",
   trControl = nnet.trainControl,
-  tuneGrid = nnetGrid,
+  tuneGrid = nnet.Grid,
   trace = FALSE,
   maxit = 100
 )
 
 set.seed(123)
 nnet.train.300 <- train(
-  x = credit.Datos.Train.Knn[varsPredictoras],
-  y = credit.Datos.Train.Knn[[varObjetivo]],
+  x = credit.Datos.nnet.Train[varsPredictoras],
+  y = credit.Datos.nnet.Train[[varObjetivo]],
   method = "nnet",
+  metric = "ROC",
   trControl = nnet.trainControl,
-  tuneGrid = nnetGrid,
+  tuneGrid = nnet.Grid,
   trace = FALSE,
   maxit = 300
 )
 
 set.seed(123)
-nnet.train.500 <- train(
-  x = credit.Datos.Train.Knn[varsPredictoras],
-  y = credit.Datos.Train.Knn[[varObjetivo]],
+nnet.train.1000 <- train(
+  x = credit.Datos.nnet.Train[varsPredictoras],
+  y = credit.Datos.nnet.Train[[varObjetivo]],
   method = "nnet",
+  metric = "ROC",
   trControl = nnet.trainControl,
-  tuneGrid = nnetGrid,
+  tuneGrid = nnet.Grid,
   trace = FALSE,
-  maxit = 500
+  maxit = 1000
 )
 
 
 ```
 
 ```{r}
-# print(nnet.train.100)
-# print(nnet.train.300)
-# print(nnet.train.500)
-
 # Encontrar el índice del máximo valor de ROC
 max_index100 <- which.max(nnet.train.100$results$ROC)
 
@@ -2838,35 +2967,30 @@ cat("El valor más alto de ROC para 300 iteraciones es:", max_roc300, "\n")
 cat("Corresponde a size:", corresponding_size300, "y decay:", corresponding_decay300, "\n")
 
 # Encontrar el índice del máximo valor de ROC
-max_index500 <- which.max(nnet.train.500$results$ROC)
+max_index1000 <- which.max(nnet.train.1000$results$ROC)
 
 # Obtener los valores correspondientes
-max_roc500 <- nnet.train.500$results$ROC[max_index500]
-corresponding_size500 <- nnet.train.500$results$size[max_index500]
-corresponding_decay500 <- nnet.train.500$results$decay[max_index500]
+max_roc1000 <- nnet.train.1000$results$ROC[max_index1000]
+corresponding_size1000 <- nnet.train.1000$results$size[max_index1000]
+corresponding_decay1000 <- nnet.train.1000$results$decay[max_index1000]
 
 # Imprimir los resultados
-cat("El valor más alto de ROC para 500 iteraciones es:", max_roc500, "\n")
-cat("Corresponde a size:", corresponding_size500, "y decay:", corresponding_decay500, "\n")
+cat("El valor más alto de ROC para 1000 iteraciones es:", max_roc1000, "\n")
+cat("Corresponde a size:", corresponding_size1000, "y decay:", corresponding_decay1000, "\n")
 
 ```
+omo vemos el ROC varia muy levemente por lo que la mejor opción aparentemente es la de 100 itereaciónes ya que requerirá menos tiempo de computo con valores de size de 4 y un valor de dacay de 0.5. Vamos a verificar esto con las predicciones en el conjunto test.
 
 ### Test de modelos
 
 Probamos los distintos modelos que hemos entrenado para ver cual tiene mejor prediccion
 
 ```{r}
+prediccion.nnet.100 <- predict(nnet.train.100, newdata = credit.Datos.nnet.Test[varsPredictoras])
 
-# 9. Guardar el modelo entrenado
-#saveRDS(modelo_rf, "modelo_rf.rds")
+prediccion.nnet.300 <- predict(nnet.train.300, newdata = credit.Datos.nnet.Test[varsPredictoras])
 
-
-prediccion.nnet.100 <- predict(nnet.train.100, newdata = credit.Datos.Test.Knn[varsPredictoras])
-
-prediccion.nnet.300 <- predict(nnet.train.300, newdata = credit.Datos.Test.Knn[varsPredictoras])
-
-prediccion.nnet.500 <- predict(nnet.train.500, newdata = credit.Datos.Test.Knn[varsPredictoras])
-
+prediccion.nnet.1000 <- predict(nnet.train.1000, newdata = credit.Datos.nnet.Test[varsPredictoras])
 ```
 
 ### Comparativa de modelos
@@ -2887,8 +3011,8 @@ matrizConfusion.nnet.300 <- confusionMatrix(
   positive = "aprobada" # Cambia esto por la clase objetivo positiva
 )
 
-matrizConfusion.nnet.500 <- confusionMatrix(
-  data = prediccion.nnet.500,
+matrizConfusion.nnet.1000 <- confusionMatrix(
+  data = prediccion.nnet.1000,
   reference = credit.Datos.Test[[varObjetivo]],
   positive = "aprobada" # Cambia esto por la clase objetivo positiva
 )
@@ -2903,12 +3027,12 @@ Ahora creamos un histograma para ver que modelo arroja mejores resultados.
 accuracy_values <- c(
   matrizConfusion.nnet.100$overall["Accuracy"] * 100,
   matrizConfusion.nnet.300$overall["Accuracy"] * 100,
-  matrizConfusion.nnet.500$overall["Accuracy"] * 100
+  matrizConfusion.nnet.1000$overall["Accuracy"] * 100
 )
 
 # Crear un data frame con los resultados
 resultados <- data.frame(
-  Modelo = c("100 iteraciones", "300 iteraciones", "500 iteraciones"),
+  Modelo = c("100 iteraciones", "300 iteraciones", "1000 iteraciones"),
   Accuracy = accuracy_values
 )
 
@@ -2929,6 +3053,119 @@ ggplot(resultados, aes(x = Modelo, y = Accuracy, fill = Modelo)) +
 
 ```
 
+Por lo tanto concluimos que el que mejor resultados da es con 100 iteraciones.
+
+### Reentrenamiento y testeo
+
+Para evitar picking vamos a reentrenar nuestro mejor modelo anterior con hiperparametros fijos para tener un valor mas real de las predicciones, por lo que entrenaremos el modelo de 100 iteraciones con un valor de size de 4 y de decay de 0.5.
+
+```{r}
+nnet.Grid.final <- expand.grid(
+  size = c(4),
+  decay = c(0.5)
+)
+
+set.seed(123)
+nnet.train.100.final <- train(
+  x = credit.Datos.nnet.Train[varsPredictoras],
+  y = credit.Datos.nnet.Train[[varObjetivo]],
+  method = "nnet",
+  metric = "ROC",
+  trControl = nnet.trainControl,
+  tuneGrid = nnet.Grid.final,
+  trace = FALSE,
+  maxit = 100
+)
+
+```
+
+Vamos con la predicción en nuestro conjunto test.
+
+```{r}
+prediccion.nnet.100.final <- predict(nnet.train.100.final, newdata = credit.Datos.nnet.Test[varsPredictoras])
+
+matrizConfusion.nnet.100.final <- confusionMatrix(
+  data = prediccion.nnet.100.final,
+  reference = credit.Datos.Test[[varObjetivo]],
+  positive = "aprobada" # Cambia esto por la clase objetivo positiva
+)
+
+```
+
+Comparamos ahora los resultados.
+
+```{r}
+# Extraer Accuracy de las matrices de confusión
+accuracy_values <- c(
+  matrizConfusion.nnet.100$overall["Accuracy"] * 100,
+  matrizConfusion.nnet.100.final$overall["Accuracy"] * 100
+)
+
+# Crear un data frame con los resultados
+resultados <- data.frame(
+  Modelo = c("nnet 100 iteraciones", "nnet 100 iteraciones Final"),
+  Accuracy = accuracy_values
+)
+
+# Crear el histograma
+ggplot(resultados, aes(x = Modelo, y = Accuracy, fill = Modelo)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  geom_text(aes(label = round(Accuracy, 2)), vjust = -0.5) + # Agregar etiquetas con valores
+  labs(
+    title = "Accuracy del Modelo nnet (100 iteraciones)",
+    x = "Modelo",
+    y = "Accuracy (%)"
+  ) +
+  scale_fill_manual(values = c("nnet 100 iteraciones" = "blue", "nnet 100 iteraciones Final" = "lightblue")) +
+  theme_minimal() +
+  coord_cartesian(ylim = c(80, 90)) +
+  theme(legend.position = "none") # Ocultar leyenda, ya que el eje X describe los modelos
+```
+Con los hiperparametros fijos nos da incluso mejores resultados por lo que este será nuestro modelo final.
+
 ### Postprocesado de datos
 
+Antes de elegir definitivamente el modelo vamos a hacer un postprocesado de los datos y ver que variables se usan mas.
+
+```{r}
+varImp(nnet.train.100.final)
+```
+Vemos que no hay ninguna variable que se use "poco" por lo qu eno sería necesario hacer un postprocesado de los datos. 
+
 ### Conclusión
+
+El modelo final de redes neuronales nos ha dado un porcentaje de acierto 84,67%, esta por debajo de otros modelos pero la ventaja que he detectado en este modelo es que a pesar de tener un preprocesado de datos mas complejo de random forest, funciona muy bien con iteraciones bajas lo que mejora mucho el tiempo de computo.
+
+Nuestro modelo final es por tanto:
+```{r}
+print(nnet.train.100.final)
+```
+### Bibliografía Redes Neuronales
+
+Aprendizaje Computacional. (s.f.). Análisis de datos y machine learning con R (caret). Versión 0.105 (pre-release)
+
+Amat Rodrigo, J. (n.d.). Machine Learning con R y caret. Recuperado de https://cienciadedatos.net/documentos/41_machine_learning_con_r_y_caret
+
+Fernández, A. (n.d.). Machine Learning en R con caret. Recuperado de https://anderfernandez.com/blog/machine-learning-caret-r/
+
+Charte, F. (2016). Redes neuronales con R. Recuperado de https://fcharte.com/tutoriales/20160203-R-RedesNeuronales/
+
+Amat Rodrigo, J. (n.d.). Redes neuronales con R. Recuperado de https://cienciadedatos.net/documentos/68-redes-neuronales-r
+
+ISGlobal BRGE. (n.d.). La librería caret. Recuperado de https://isglobal-brge.github.io/curso_machine_learning/caret.html
+
+# Conclusiónes finales
+
+En este trabajo, hemos evaluado múltiples modelos de aprendizaje automático, considerando tanto su rendimiento como los requisitos de preprocesado. Cada modelo ha mostrado fortalezas y debilidades, lo que nos permite reflexionar sobre su idoneidad según las necesidades específicas:
+
+KNN obtuvo el mayor porcentaje de acierto (87.59%) tras aplicar normalización, transformación de variables categóricas y eliminación de variables con varianza nula. Sin embargo, su rendimiento depende de un preprocesado relativamente extenso.
+
+Random Forest destacó por un alto porcentaje de acierto (86.86%) con requisitos mínimos de preprocesado, lo que lo convierte en una opción robusta y eficiente para escenarios donde se busca simplicidad en la preparación de datos.
+
+GBM logró un acierto del 86.13%, empleando configuraciones automáticas de preprocesado y optimización de parámetros. Aunque no fue el modelo con mayor precisión, mostró una gran estabilidad y flexibilidad.
+
+SVM, con un porcentaje de acierto del 85.4%, benefició significativamente de un preprocesado avanzado, incluyendo PCA y eliminación de variables con baja varianza, pero mostró menor rendimiento en comparación con modelos menos exigentes en esta etapa.
+
+Redes Neuronales (nnet), aunque ligeramente por debajo en precisión (84.67%), ofrecieron una ventaja en términos de tiempo de cómputo, funcionando eficazmente con iteraciones bajas pese a requerir un preprocesado más complejo.
+
+Conclusión General: El modelo Random Forest se posiciona como el más equilibrado al ofrecer un alto porcentaje de acierto con requisitos mínimos de preprocesado, siendo ideal para implementaciones rápidas y prácticas. Sin embargo, en situaciones donde se puede invertir más tiempo en preprocesado, KNN sería una excelente alternativa por su rendimiento superior. Esta experiencia resalta la importancia de adaptar los modelos y su configuración a las necesidades y restricciones del problema.
