@@ -55,14 +55,488 @@ library(caret)
 library(randomForest)
 library(nnet)
 library(pROC)
+library(reshape2)
+library(ggplot2)
+```
+
+# Introducción
+
+El documento ha cargado automáticamente la base de datos, ahora vamos a ir haciendo un preprocesado de los datos, primero el siguiente comando muestra la cantidad de valores NA por columna:
+
+```{r}
+colSums(is.na(credit))
+```
+
+Esto es por si alguna columna tiene demasiados valores NA para eliminarla
+
+Convertir automáticamente columnas de tipo 'chr' a 'factor'
+
+```{r}
+credit[sapply(credit, is.character)] <- lapply(credit[sapply(credit, is.character)], as.factor)
+```
+
+Despues de esto empezamos especulando el significado de cada uno de las variables. Esto lo vamos a hacer buscando en internet el significado esperado de cada una, haciendo suposiciones y comprobando que el análisis de cada una de las variables sea coherente.
+
+# Análisis de Variables
+
+## V1
+
+Se trata de una variable categórica, con valores en el dominio `{a, b}`. Tiene un significado que podemos intuir de forma relativamente fácil. De hecho, podemos pensar que "a" se trata de mujeres y "b" de hombres. Esto se debe a que la base es de los años 80, y en esa época era más común que los hombres soliciten créditos, y en el caso de las mujeres, seguramente las que lo solicitaban eran las que estaban solteras. Se trata de una época con pensamientos cerrados, y esto es un simple estudio estadístico.
+
+```{r}
+# Eliminamos niveles no usados
+credit$V1 <- droplevels(credit$V1)
+summary(credit$V1)
+```
+
+Como podemos comprobar nuestra suposición puede ser cierta.
+
+## V2
+
+Esta columna puede ser la edad del cliente. Es continuo ya que los días los puede estar teniendo en cuenta de alguna forma. Sin embargo, en Estados Unidos los menores no pueden solicitar un crédito y hay algunos valores menores de 18. Vamos a calcular cuantos:
+
+```{r}
+num_menores_18 <- sum(credit$V2 < 18, na.rm = TRUE)
+total_valores <- sum(!is.na(credit$V2))
+porcentaje_menores_18 <- (num_menores_18 / total_valores) * 100
+porcentaje_menores_18
+```
+
+Comprobamos que aproximadamente el 5% de los clientes son menores de edad, al no ser una cifra muy significativa, podemos asumir que son valores fuera de rango, y que efectivamente podríamos estar ante la variable de edad. En siguientes apartados veremos qué hacer con estos valores.
+
+Decidimos que es interesante analizar V2 ya que su media y mediana son parecidas, lo cual sugiere que la distribución puede ser simétrica (cercana a normal).
+
+Generamos un histograma base con la función hist() de R para la variable V2 con probability = TRUE para mostrar la densidad en vez de las frecuencias absolutas. Además añadimos una línea de densidad para observar la forma de la distribución de V2, usando la función lines() y especificando el color "blue" para la curva.
+
+```{r}
+hist(credit$V2, probability = TRUE, main = "Histograma de V2 con Curva de Densidad")
+lines(density(credit$V2, na.rm = TRUE), col = "blue")
+```
+
+Creamos un histograma con ggplot2 para la variable V2 del dataframe 'credit', estableciendo aesthetic mapping (aes) para usar V2 en el eje x y ademas y añadimos un histograma con color de contorno naranja y relleno naranja claro (alpha = 0.2) y definimos intervalos de 5 unidades usando el argumento breaks.
+
+```{r}
+myHist <- ggplot(data = credit, aes(x = V2)) +
+  geom_histogram(col = "orange", fill = "orange", alpha = 0.2, breaks = seq(0, 80, by = 5)) +
+  geom_density(col = "blue", lwd = 1) +
+  labs(title = "Histograma para la variable V2 con línea de densidad", x = "V2", y = "Frecuencia")
+
+# Mostrar el gráfico
+myHist
+
+```
+
+Añadimos una línea vertical en el histograma de ggplot para marcar la media de V2 usando geom_vline() y especificando la posición con xintercept = mean() y hacemos lo mismo para marcar la mediana.
+
+```{r}
+myHist = myHist + geom_vline(xintercept = mean(credit$V2, na.rm = TRUE), col = "blue")
+myHist = myHist + geom_vline(xintercept = median(credit$V2, na.rm = TRUE), col = "red")
+```
+
+Mostramos el gráfico final en ggplot2 con el histograma de V2, junto con las líneas de media (azul) y mediana (roja).
+
+```{r}
+myHist
+```
+
+Como vemos, V2 no sigue exactamente una distribución normal, ya que la media y la mediana no son idénticas, lo que indica una posible asimetría en los datos.
+
+Para confirmar formalmente la falta de normalidad, realizaremos un gráfico Q-Q (Quantile-Quantile), que nos permite comparar la distribución de V2 con la distribución teórica normal.
+
+```{r}
+
+# Creamos el gráfico Q-Q para V2 utilizando ggplot2.
+p1 = ggplot(data = credit, aes(sample = V2)) +
+  # Añadimos un título al gráfico Q-Q.
+  ggtitle("QQ plot para V2") +
+  # Añadimos los puntos del gráfico Q-Q, que compara los cuantiles de la muestra de V2 
+  # con los cuantiles teóricos de una distribución normal.
+  geom_qq() + 
+  # Añadimos la línea Q-Q teórica (stat_qq_line), que muestra cómo se deberían 
+  # alinear los puntos si la distribución de V2 fuera normal.
+  stat_qq_line() + 
+  # Etiquetas para los ejes: 'Distribución teórica' en el eje x y 'Distribución muestral' en el eje y.
+  xlab("Distribución teórica") + 
+  ylab("Distribución muestral")
+```
+
+Mostramos el gráfico Q-Q, que permite ver si los puntos se alinean (lo que indicaría normalidad) o si se desvían de la línea (indicando falta de normalidad en la distribución de V2).
+
+```{r}
+p1
+```
+
+Como vemos hay una desviación de la diagonal. Por tanto, podemos concluir que no se trata de una distribución normal.
+
+## V3
+
+Nuestra especulación en cuanto a esta columna es que se trata de la cantidad de deuda que tienen los clientes. Sin embargo, no tiene sentido que el que más debe, el total sea 28\$:
+
+```{r}
+summary(credit$V3)
+```
+
+Por ello, pensamos que pueda estar dividida por $10^{3}$ o similar. De igual manera no nos importa la proporción que lleve.
+
+## V4
+
+En esta columna podríamos estar ante el estado civil de cada uno de los clientes. Siendo cada uno de los valores {l=desconocido, u=casados, y=solteros, t=otros}. Si calculamos el porcentaje de clientes casados:
+
+```{r}
+num_mayores_18 <- sum(credit$V2 > 18, na.rm = TRUE)
+num_casados <- sum(credit$V4 == "u", na.rm = TRUE)
+porcent_casados <- (num_casados/num_mayores_18) * 100
+porcent_casados
+```
+
+Si buscamos en internet en torno al 70% de la población adulta en Estados Unidos estaba casada. Como podemos ver se aproxima mucho a nuestro resultado. Esa pequeña diferencia puede deberse a que muchos matrimonios al casarse, compran una casa, y piden un préstamo para ello.
+
+Observamos en V4 que hay un elemento que no aparece y es necesario añadir.
+
+```{r}
+# Eliminamos niveles no usados
+#credit$V4 <- droplevels(credit$V4)
+
+# Ahora vamos a añadir un elemento que no aparece y luego lo hacemos factor
+#levels(credit$V4)<-c(levels(credit$V4),"t")
+str(credit$V4)
 
 
 ```
 
+## V6
+
+Analizamos la variable categórica V6 para obtener una visión general de su distribución y composición. Mostramos un resumen estadístico de V6, que nos indica la frecuencia de cada categoría en esta variable.
+
+```{r}
+summary(credit$V6)
+```
+
+Verificamos la estructura de V6 para confirmar que es una variable categórica (factor o carácter).
+
+```{r}
+str(credit$V6)
+```
+
+Calculamos el porcentaje de cada categoría en V6, para ello primero, obtenemos la frecuencia de cada categoría con table(credit\$V6) y luego, usamos prop.table() para calcular la proporción relativa de cada categoría y multiplicamos por 100 para expresarlo en porcentaje.
+
+```{r}
+porcent <- prop.table(table(credit$V6)) * 100
+```
+
+Creamos una tabla que combina tanto el número total de observaciones (frecuencia) como el porcentaje de cada categoría: cbind() se usa para unir la frecuencia y el porcentaje en una tabla única.
+
+```{r}
+porcent_table <- cbind(total = table(credit$V6), porcentaje = porcent)
+```
+
+Mostramos el vector de porcentajes, lo que nos permite visualizar el porcentaje de cada categoría en V6.
+
+```{r}
+porcent
+```
+
+Ahora que entendemos la distribución de frecuencias y porcentajes de cada categoría, generamos un gráfico de sectores para visualizar estos porcentajes de manera gráfica y comparativa.
+
+Creamos el gráfico de sectores (o "quesos") usando la función pie(), pasándole el vector de porcentajes. Establecemos un título con el argumento main y aplicamos diferentes colores a cada categoría usando rainbow().
+
+```{r}
+pie(porcent, main = "Diagrama de Quesos para V6", col = rainbow(length(porcent)))
+```
+
+Mostramos nuevamente el vector de porcentajes para recordar los valores antes de proceder con el análisis de los valores NA.
+
+```{r}
+porcent
+```
+
+Calculamos la suma del resumen de V6 para confirmar el número total de observaciones, incluyendo posibles NA.
+
+```{r}
+sum(summary(credit$V6))
+```
+
+Calculamos el porcentaje de valores NA en la variable V6, asumiendo que hay 9 valores NA de un total de 690 observaciones.
+
+```{r}
+porcentaje_na <- 9 / 690 * 100
+porcentaje_na
+```
+
+Concluimos que, siendo aproximadamente un 1.3% de valores faltantes (NA), la eliminación de estas observaciones es razonable, ya que este porcentaje es bajo y es poco probable que afecte significativamente el análisis.
+
+## V8
+
+Esta variable creemos que puede ser los años de empleo. Si nos fijamos en los valores de las columnas de V8 (años contratado) y las comparamos por filas con las de V2 (edad) nos podemos dar cuenta que nunca va a superar la edad. De hecho en muchos casos tiene coherencia la edad con el número de años contratado. Esto puede ser un claro indicativo que estamos ante una buena especulación. Aún así vamos a verlo en R:
+
+```{r}
+summary(credit$V8)
+```
+
+Podemos apreciar que el valor máximo no es muy grande. Esto nos puede despistar un poco, pero basta con informarnos un poco sobre la variable edad:
+
+```{r}
+summary(credit$V2)
+```
+
+¿Aporta algo este resumen? Por supuesto, de hecho tenemos la razón de que nuestra variable de años contratados presente datos tan bajos. Estamos ante un conjunto de clientes jóvenes, y como es lógico no tienen muchos años como empleados.
+
+## V10
+
+Esta variable hemos podido intuir junto a alguna investigaciones que representa si un cliente está actualmente empleado. Esto es muy interesante de cara al análisis por temas obvios de solvencia. Suponemos que {f=empleado, t=no empleado}. Pero, ¿realmente es consistente la cifra de empleados? Sí, lo vemos con:
+
+```{r}
+porcentajes_empleados <- prop.table(summary(credit$V10))*100
+porcentajes_empleados
+```
+
+Según hemos podido encontrar en los años ochenta en Estados Unidos había un 60% de población activa. Esto es de gran utilidad para hacer una correlación junto a V16 (aprobada/rechazada).
+
+## V11
+
+Esta variable es posible que sea \`\`credit score", que es es una expresión numérica que representa la solvencia de un individuo. Según hemos podido comprobar también ha sido retocada (los valores), ya que los valores no siguen la notación habitual. Pero sí sabemos que cuanto mayor es el valor, mayor es la solvencia. En la Figura\~\ref{fig:credit_score} podemos encontrar un gráfico interesante que ilustra este concepto:
+
+![Descripción de la imagen](imagenes/creditScorepx.png)
+
+Es importante conocer la forma que van a tener nuestros datos de esta variable:
+
+```{r}
+hist(credit$V11, 
+     breaks = seq(min(credit$V11, na.rm = TRUE), max(credit$V11, na.rm = TRUE), by = 1),
+     main = "Histograma de Credit Score V11",
+     xlab = "Valores de V11", 
+     ylab = "Frecuencia",
+     col = "lightblue", 
+     border = "black")
+```
+
+La mediana indica que hay muchos ceros. Y con el histograma vemos que esto efectivamente es así:
+
+grafico v11
+
+Lo deberíamos de tener en cuenta a la hora de hacer el análisis multivariable.
+
+## V13
+
+Pasamos a analizar la última variable interesante para nuestro análisis. Esta variable representa composición de la población, clasificando en: cuidadano, residente permenente o inmigrante. Según consta en los datos, la distribución es 86%, 2.6% y 6.2%. ¿Se aproximará?
+
+```{r}
+prop.table(summary(credit$V13))*100
+```
+
+Como vemos son muy parecidos. Esto es un indicativo significativo. Concluimos que {g=ciudadano, p=residente permanente, s=inmigrante}.
+
+## Razonamiento para comparar V14 y V16
+
+Una razonamiento útil que podemos hacer es relacionar los códigos postales con la aprobación de los créditos solicitados. Suponemos que los códigos postales han sidos modificados de alguna manera para proteger la privacidad de los datos. Esto lo hacemos porque dependiendo de la ubicación de los solicitantes, si están en barrios más ricos, o barrios más humildes, podemos hacer una distinción de gente con más poder adquisitivo, que por lo general, representarán mayor parte de solicitudes aprobadas.
+
+```{r}
+library(ggplot2)
+    ggplot(credit, aes(x = V16, y = V14, fill = V16)) + 
+        geom_violin() +
+        labs(title = "Distribución de V14 (Edad) por V16 (Decisión de Crédito)",
+            x = "Decisión de Crédito (V16)", 
+            y = "Edad (V14)") +
+    theme_minimal() +
+    scale_fill_manual(values = c("skyblue", "orange"))
+```
+
+## V15
+
+Vamos a analizar la variable V15, que parece tener una distribución con muchos valores cercanos a 0 pero también valores atípicos elevados, lo que podría afectar la media.
+
+Realizamos un resumen estadístico de la variable V15 para obtener una visión general de los valores, incluyendo mínimos, máximos, media y mediana.
+
+```{r}
+summary(credit$V15)
+```
+
+Generamos un histograma básico para observar la distribución de V15. Usamos probability = TRUE para mostrar el histograma en términos de densidad. Además añadimos una curva de densidad a la gráfica para visualizar mejor la forma de la distribución, usando la función density() con na.rm = TRUE para excluir valores NA.
+
+```{r}
+hist(credit$V15, probability = TRUE,main = "Histograma de V15 con Curva de Densidad")
+lines(density(credit$V15, na.rm = TRUE), col = "blue")
+```
+
+Observamos que muchos valores altos de V15 hacen difícil ver los valores menores. Para solucionar esto, usamos ggplot2 para crear un histograma que enfoque la escala en valores menores, estableciendo los intervalos hasta 1000 (ajustable según el rango de interés).
+
+Creamos un histograma de V15 con ggplot2, aplicando intervalos de 10 en el rango de 0 a 1000.
+
+```{r}
+myHist = ggplot(data = credit, aes(credit$V15)) +
+  geom_histogram(col = "orange", fill = "orange", alpha = 0.2, breaks = seq(0, 1000, by = 10)) +
+  labs(title = "Histograma para la variable V15 con línea de densidad")
+```
+
+Añadimos una línea vertical azul en el histograma para indicar la media de V15, utilizando mean() y especificando que se ignoren valores NA.
+
+```{r}
+myHist = myHist + geom_vline(xintercept = mean(credit$V15, na.rm = TRUE), col = "blue")
+```
+
+Añadimos una línea vertical roja para indicar la mediana de V15, usando median().
+
+```{r}
+myHist = myHist + geom_vline(xintercept = median(credit$V15, na.rm = TRUE), col = "red")
+```
+
+Mostramos el gráfico final en ggplot2, que incluye el histograma de V15 y las líneas de media y mediana.
+
+```{r}
+myHist
+```
+
+Al observar el histograma, vemos que la mayoría de los valores están cerca de 0, lo que indica una acumulación de valores bajos. Esto se confirma con el resumen estadístico: la media es de 1017.4 y la mediana es 5.0, lo que significa que la mayoría de los valores son pequeños, pero hay algunos valores muy altos (outliers) que elevan la media, creando una diferencia significativa entre media y mediana.
+
+```{r}
+p1 = ggplot(data=credit,aes(sample=V15)) +
+  ggtitle("QQ plot para V15") +
+  geom_qq() + 
+  stat_qq_line() + 
+  xlab("Distribución teórica") + ylab("Distribución muestral")
+p1
+```
+
+## V16
+
+Comenzamos con el análisis de la variable categórica V16, que contiene las clases objetivo o categorías para nuestro análisis.
+
+Ahora vamos a renombrar algunas columnas para ganar legibilidad
+
+```{r}
+levels(credit$V16) <- c("rechazada", "aprobada")
+```
+
+Verificamos la estructura de V16 para confirmar que es de tipo factor y ver las categorías presentes en la variable.
+
+```{r}
+str(credit$V16)
+```
+
+Calculamos el porcentaje de cada categoría en V16. Primero, usamos table(credit\$V16) para obtener las frecuencias de cada categoría, luego, aplicamos prop.table() para obtener la proporción relativa, multiplicando por 100 para obtener el porcentaje.
+
+```{r}
+porcent <- prop.table(table(credit$V16)) * 100
+```
+
+Creamos una tabla combinada que incluye tanto el número total (frecuencia) como el porcentaje de cada categoría. Usamos cbind() para unir el total (frecuencia) y el porcentaje en una tabla.
+
+```{r}
+porcent_table <- cbind(total = table(credit$V16), porcentaje = porcent)
+```
+
+Mostramos el vector de porcentajes, que nos permite ver el porcentaje de cada categoría.
+
+```{r}
+porcent
+```
+
+Ahora que entendemos la frecuencia y proporción de cada categoría, creamos un diagrama de sectores (o "quesos") para ilustrarlo de forma gráfica.
+
+Creamos el gráfico de sectores con pie(), donde usamos el vector de porcentajes.
+
+```{r}
+pie(porcent, main = "Diagrama de Quesos para V16", col = rainbow(length(porcent)))
+```
+
+Con este gráfico de sectores, podemos ver visualmente la distribución de cada categoría en V16. Dado que las categorías tienen frecuencias similares, podemos observar que la distribución es aproximadamente uniforme y no se identifican categorías con frecuencias extremas (outliers).
+
 ```{r}
 
+melted_data <- melt(credit, id.vars = "V16", measure.vars = "V2", variable.name = "Variable", value.name = "Value")
+melted_data
+
+ggplot(melted_data, aes(x = V16, y = Value)) +
+  geom_boxplot() +
+  xlab("Categoría de V16") +
+  ylab("Valores de V2") +
+  ggtitle("Distribución de V2 por Categoría de V16")
+```
+
+Observando el boxplot podemos decir que ambos tienen una distribución simétrica. En cuanto a los outliners, no hay en exceso (en rechazada algo más).
+
+Ambas tienen un sesgo positivo, ya que los bigotes superiores tienen mayor longitud.
+
+```{r}
+# Gráfico de densidad ajustado
+ggplot(data = melted_data, aes(x = Value, color = V16, fill = V16)) +
+  geom_density(alpha = 0.6) +
+  scale_fill_discrete() +
+  scale_color_discrete() +
+  ylab("Densidad") +  # Etiqueta para el eje y
+  xlab("Valores") +   # Etiqueta para el eje x
+  ggtitle("Densidad de Valores por Especie")  # Título del gráfico
+
+```
+
+El análisis de la distribución de V2 muestra que ambas categorías (rechazada y aprobada) presentan una asimetría positiva, con picos de densidad más altos en valores bajos y una cola extendida hacia la derecha. La curva de las solicitudes rechazadas tiene una densidad más pronunciada cerca de los valores bajos (alrededor de 20), mientras que la curva de las solicitudes aprobadas es más dispersa y se extiende hacia valores más altos, sugiriendo que las aprobaciones están asociadas con un rango más amplio de valores.
+
+La superposición de las dos curvas, especialmente en el rango bajo de V2, indica que esta variable por sí sola no es un fuerte discriminante entre aprobaciones y rechazos. Sin embargo, a medida que los valores de V2 aumentan, las aprobaciones se vuelven más frecuentes.
+
+En resumen, V2 parece influir en la decisión de crédito, pero debido a la considerable superposición, podría requerir análisis adicionales junto con otras variables para mejorar la capacidad predictiva.
+
+```{r}
+# Boxplot chetados con puntos
+ggplot(melted_data, aes(x = V16, y = Value, color=V16, fill=V16)) +
+  geom_boxplot(alpha=0.6) +
+  geom_jitter(color="black") +
+  scale_fill_discrete() +
+  scale_color_discrete() +
+  xlab("Categoría de V16") +
+  ylab("Valores de V2") +
+  ggtitle("Distribución de V2 por Categoría de V16")
+```
+
+# Analisis multivariable
+
+## V16 V9
+
+```{r}
+melted_data <- melt(credit, id.vars = "V16", measure.vars = "V9", variable.name = "Variable", value.name = "Value")
+
+ggplot(melted_data, aes(x = V16, y = Value)) +
+  geom_boxplot() +
+  xlab("Categoría de V16") +
+  ylab("Valores de V2") +
+  ggtitle("Distribución de V2 por Categoría de V16")
+
+```
+
+Observando el boxplot podemos decir que ambos tienen una distribución simétrica. En cuanto a los outliners, no hay en exceso (en rechazada algo más). Ambas tienen un sesgo positivo, ya que los bigotes superiores tienen mayor longitud.
+
+```{r}
+
+# Gráfico de densidad ajustado
+ggplot(data = melted_data, aes(x = Value, color = V16, fill = V16)) +
+  geom_density(alpha = 0.6) +
+  scale_fill_discrete() +
+  scale_color_discrete() +
+  ylab("Densidad") +  # Etiqueta para el eje y
+  xlab("Valores") +   # Etiqueta para el eje x
+  ggtitle("Densidad de Valores por Especie")  # Título del gráfico
+
+```
+
+Es interesante apreciar que hay ciertas zonas en las que se ensancha el gráfico de aprobadas y adelgaza el gráfico de rechazadas y viceversa. Por la relación comentada con anterioridad. Puede ser que en los intervalos [0,100] y [300,500] aproximadamente, correspondan a casas pertenecientes a barrios más adinerados.
+
+```{r}
 # Convertir automáticamente columnas de tipo 'chr' a 'factor'
 combined_credit[sapply(combined_credit, is.character)] <- lapply(combined_credit[sapply(combined_credit, is.character)], as.factor)
+```
+
+```{r}
+# Ahora vamos a renombrar algunas columnas para ganar legibilidad
+levels(combined_credit$V16) <- c("rechazada", "aprobada")
+
+# Comprobamos que no hay missing-data:
+sum(!complete.cases(combined_credit))
+# De momento no haremos nada con estos 37 datos perdidos
+```
+
+Vamos a ver qué forma tienen nuestros datos:
+
+```{r}
+str(combined_credit)
 ```
 
 \
@@ -1129,276 +1603,154 @@ Otro aspecto necesario para que nuestro modelo funcione es eliminar las variable
 De este modo, porbaremos distintos preprocesados de datos con el objetivo de encontrar el que mejor rendimiento proporcione a nuestro model.
 
 ```{r}
-credit.Datos.Train.Svm <- credit.Datos.Train
-credit.Datos.Test.Svm <- credit.Datos.Test
+credit.Datos.svm.Train <- credit.Datos.Train
+credit.Datos.svm.Test <- credit.Datos.Test
 ```
 
-### Transformacion de distribuciones asimétricas
+### Declaracion de funciones.
 
-En primer lugar vamos a comenzar tratando las distribuciones asimetricas. Para ello vamos a usar BoxCox cuando los datos sean positivos y continuos y las distribuciones esten sesgadas a la derecha. Yeo-Johnson podemos usarla cuando los datos sean positivos, negativos o ceros y ademas funciona bien con asimetrias de ambos tipos. Por último expoTrans la emplearemos cuando los datos tengan una asimetria extremadamente sesgada.
+Para entrenar nuestro modelo, utilizaremos las funciones definidas en GBM. Sin embargo, añadiremos una nueva función para eliminar las variables con varianza igual a cero, de modo que podamos ejecutarla cuando sea necesario, en lugar de eliminar estas variables antes de entrenar el modelo, como se hacía en GBM.
 
 ```{r}
-credit.Datos.Train.Asimetricas <- credit.Datos.Train.Svm
-credit.Datos.Test.Asimetricas <- credit.Datos.Test.Svm
+eliminar_varianza_cero_svm <- function(train_name, test_name) {
+  train_data <- get(train_name, envir = .GlobalEnv)
+  test_data <- get(test_name, envir = .GlobalEnv)
+  
+  
+  nzv <- nearZeroVar(train_data)
+  train_data_clean <- train_data[, -nzv]
+  test_data_clean <- test_data[, names(train_data_clean)]
+  
+  assign(train_name, train_data_clean, envir = .GlobalEnv)
+  assign(test_name, test_data_clean, envir = .GlobalEnv)
+}
 ```
+
+### Configuración
 
 ```{r}
-#Edad
-Var<-"Edad"
-hist(credit.Datos.Train$Edad, 
-     main = c("Histograma de ",Var),  # Título del gráfico
-     xlab = Var,                # Etiqueta del eje X
-     col = "blue",                 # Color de las barras
-     border = "black",             # Color del borde de las barras
-     breaks = 20)
-preProcValues <- preProcess(credit.Datos.Train.Asimetricas[Var], method = "BoxCox")
-credit.Datos.Train.Asimetricas[Var] <- predict(preProcValues, credit.Datos.Train.Asimetricas[Var])
-credit.Datos.Test.Asimetricas[Var] <- predict(preProcValues, credit.Datos.Test.Asimetricas[Var])
-
-# Histograma para credit.Datos.Train.Asimetricas$Edad
-hist(credit.Datos.Train.Asimetricas$Edad, 
-     main = paste("Histograma de", Var, "en credit.Datos.Train.Asimetricas"), 
-     xlab = Var, col = "green", border = "black", breaks = 20)
-
+configuracion_svm <- list(
+  conf1  = list("dummy", "var_cero"),
+  conf2  = list("norm_center_scale", "dummy", "var_cero"),
+  conf3  = list("norm_range", "dummy", "var_cero"),
+  conf4  = list("dummy", "var_cero", "pca"),
+  conf5  = list("dummy", "var_cero", "ica"),
+  conf6  = list("norm_center_scale", "dummy", "var_cero", "pca"),
+  conf7  = list("norm_center_scale", "dummy", "var_cero", "ica"),
+  conf8  = list("norm_range", "dummy", "var_cero", "pca"),
+  conf9  = list("norm_range", "dummy", "var_cero", "ica")
+)
 ```
+
+### Ejecutar funciones según configuración
 
 ```{r}
-#Deuda
-Var<-"Deuda"
-hist(credit.Datos.Train$Deuda, 
-     main = c("Histograma de ",Var),  # Título del gráfico
-     xlab = Var,                # Etiqueta del eje X
-     col = "blue",                 # Color de las barras
-     border = "black",             # Color del borde de las barras
-     breaks = 20)
-preProcValues <- preProcess(credit.Datos.Train.Asimetricas[Var], method = "YeoJohnson")
-credit.Datos.Train.Asimetricas[Var] <- predict(preProcValues, credit.Datos.Train.Asimetricas[Var])
-credit.Datos.Test.Asimetricas[Var] <- predict(preProcValues, credit.Datos.Test.Asimetricas[Var])
-
-hist(credit.Datos.Train.Asimetricas$Deuda, 
-     main = paste("Histograma de", Var, "en credit.Datos.Train.Asimetricas"), 
-     xlab = Var, col = "green", border = "black", breaks = 10)
+ejecutar_configuracion_svm <- function(config, train, test) {
+  if ("norm_range" %in% config) norm_range(train, test)
+  if ("norm_center_scale" %in% config) norm_center_scale(train, test)
+  if ("dummy" %in% config) dummy(train, test)
+  if ("var_cero" %in% config) eliminar_varianza_cero_svm(train, test)
+  if ("pca" %in% config) pca(train, test)
+  if ("ica" %in% config) ica(train, test)
+}
 ```
+
+### Almacenar modelos entrenados
 
 ```{r}
-#AnyosContratado
-Var<-"AnyosContratado"
-hist(credit.Datos.Train$AnyosContratado, 
-     main = c("Histograma de ",Var),  # Título del gráfico
-     xlab = Var,                # Etiqueta del eje X
-     col = "blue",                 # Color de las barras
-     border = "black",             # Color del borde de las barras
-     breaks = 20)
-preProcValues <- preProcess(credit.Datos.Train.Asimetricas[Var], method = "YeoJohnson")
-credit.Datos.Train.Asimetricas[Var] <- predict(preProcValues, credit.Datos.Train.Asimetricas[Var])
-credit.Datos.Test.Asimetricas[Var] <- predict(preProcValues, credit.Datos.Test.Asimetricas[Var])
-
-hist(credit.Datos.Train.Asimetricas$AnyosContratado, 
-     main = paste("Histograma de", Var, "en credit.Datos.Train.Asimetricas"), 
-     xlab = Var, col = "green", border = "black", breaks = 10)
+modelos_entrenados_svm <- list()
 ```
+
+### Ejecutamos todas las configuraciones
 
 ```{r}
-#Solvencia
-Var<-"Solvencia"
-hist(credit.Datos.Train$Solvencia, 
-     main = c("Histograma de ",Var),  # Título del gráfico
-     xlab = Var,                # Etiqueta del eje X
-     col = "blue",                 # Color de las barras
-     border = "black",             # Color del borde de las barras
-     breaks = 20)
-preProcValues <- preProcess(credit.Datos.Train.Asimetricas[Var], method = "BoxCox")
-credit.Datos.Train.Asimetricas[Var] <- predict(preProcValues, credit.Datos.Train.Asimetricas[Var])
-credit.Datos.Test.Asimetricas[Var] <- predict(preProcValues, credit.Datos.Test.Asimetricas[Var])
-
-hist(credit.Datos.Train.Asimetricas$Solvencia, 
-     main = paste("Histograma de", Var, "en credit.Datos.Train.Asimetricas"), 
-     xlab = Var, col = "green", border = "black", breaks = 10)
+for (i in seq_along(configuracion_svm)) {
+  # Crear nombre de configuración
+  nombre_config <- names(configuracion_svm)[i]
+  preprocesamientos <- configuracion_svm[[i]]
+  
+  # Restaurar bases de datos originales
+  credit.Datos.svm.Train <- credit.Datos.Train
+  credit.Datos.svm.Test <- credit.Datos.Test
+  
+  # Aplicar configuración
+  ejecutar_configuracion_svm(preprocesamientos, "credit.Datos.svm.Train", "credit.Datos.svm.Test")
+  
+  # Definir variables de entrada y salida
+  credit.Var.Salida.Usada <- "V16"
+  credit.Vars.Entrada.Usadas <- setdiff(names(credit.Datos.svm.Train), credit.Var.Salida.Usada)
+  
+  # Entrenar el modelo
+  set.seed(1234)
+  modelo_entrenado <- train(
+    x = credit.Datos.svm.Train[, credit.Vars.Entrada.Usadas],
+    y = credit.Datos.svm.Train[[credit.Var.Salida.Usada]],
+    method = "svmRadial",
+    trControl = credit.trainCtrl.3cv10.resampAll,
+    tuneGrid = data.frame(
+      sigma = 0.03951598,              
+      C = 1         
+    ),
+    metric = "Accuracy",
+    verbose = FALSE
+  )
+  
+  # Guardar modelo
+  modelos_entrenados_svm[[nombre_config]] <- modelo_entrenado
+  
+  # Mostrar información del modelo actual
+  print(paste("Modelo entrenado para la configuración:", nombre_config))
+}
 ```
+
+### Interpretamos los resultados obtenidos
 
 ```{r}
-#v14
-Var<-"V14"
-hist(credit.Datos.Train$V14, 
-     main = c("Histograma de ",Var),  # Título del gráfico
-     xlab = Var,                # Etiqueta del eje X
-     col = "blue",                 # Color de las barras
-     border = "black",             # Color del borde de las barras
-     breaks = 20)
-preProcValues <- preProcess(credit.Datos.Train.Asimetricas[Var], method = "YeoJohnson")
-credit.Datos.Train.Asimetricas[Var] <- predict(preProcValues, credit.Datos.Train.Asimetricas[Var])
-credit.Datos.Test.Asimetricas[Var] <- predict(preProcValues, credit.Datos.Test.Asimetricas[Var])
+# Comparar modelos usando resamples()
+resultados_resampling <- resamples(modelos_entrenados_svm)
 
-hist(credit.Datos.Train.Asimetricas$V14, 
-     main = paste("Histograma de", Var, "en credit.Datos.Train.Asimetricas"), 
-     xlab = Var, col = "green", border = "black", breaks = 20)
+# Mostrar estadísticas resumidas
+summary(resultados_resampling)
+
+# Graficar resultados
+bwplot(resultados_resampling, metric = "Accuracy")
+dotplot(resultados_resampling, metric = "Accuracy")
+
+# Prueba estadística de diferencias
+diferencias_modelos <- diff(resultados_resampling)
+summary(diferencias_modelos)
 ```
+
+Aunque no podemos asegurar caul es la mejor ya que los intervalos coincide, de acerdo con la información busacada nos vamos a quedar con conf4.
 
 ```{r}
-#v15
-Var<-"V15"
-hist(credit.Datos.Train$V15, 
-     main = c("Histograma de ",Var),  # Título del gráfico
-     xlab = Var,                # Etiqueta del eje X
-     col = "blue",                 # Color de las barras
-     border = "black",             # Color del borde de las barras
-     breaks = 20)
-preProcValuesBC <- preProcess(credit.Datos.Train.Asimetricas[Var], method = "YeoJohnson")
-credit.Datos.Train.Asimetricas[Var] <- predict(preProcValuesBC, credit.Datos.Train.Asimetricas[Var])
-credit.Datos.Test.Asimetricas[Var] <- predict(preProcValuesBC, credit.Datos.Test.Asimetricas[Var])
+credit.Datos.svm.Train <- credit.Datos.Train
+credit.Datos.svm.Test <- credit.Datos.Test
 
-hist(credit.Datos.Train.Asimetricas$V15, 
-     main = paste("Histograma de", Var, "en credit.Datos.Train.Asimetricas"), 
-     xlab = Var, col = "green", border = "black", breaks = 20)
-```
-
-Si queremos que no aplique comentar lo siguiente:
-
-```{r}
-#credit.Datos.Train.Svm <- credit.Datos.Train.Asimetricas
-#credti.datos.Test.Svm <- credit.Datos.Test.Asimetricas
-```
-
-### Normalización
-
-```{r}
-credit.Var.Salida.Usada <- c("V16")
-credit.Var.Entrada.Usadas <- setdiff(names(credit.Datos.Train.Svm),credit.Var.Salida.Usada)
-```
-
-#### Usando Center-Scale
-
-```{r}
-credit.preProc.CS.Mod<-preProcess(credit.Datos.Train.Svm[credit.Var.Entrada.Usadas],
-                                  method=c("center","scale"))
-credit.Datos.Train.CS <- predict(credit.preProc.CS.Mod,credit.Datos.Train.Svm)
-credit.Datos.Test.CS <- predict(credit.preProc.CS.Mod,credit.Datos.Test.Svm)
-```
-
-```{r}
-#credit.Datos.Train.Svm <- credit.Datos.Train.CS
-#credit.Datos.Test.Svm <- credit.Datos.Test.CS
-```
-
-#### Usando Range
-
-```{r}
-credit.preProc.CS.Mod<-preProcess(credit.Datos.Train.Svm[credit.Var.Entrada.Usadas],
-                                  method=c("range"))
-credit.Datos.Train.Rg <- predict(credit.preProc.CS.Mod,credit.Datos.Train.Svm)
-credit.Datos.Test.Rg <- predict(credit.preProc.CS.Mod,credit.Datos.Test.Svm) 
-```
-
-```{r}
-#credit.Datos.Train.Svm <- credit.Datos.Train.Rg
-#credit.Datos.Test.Svm <- credit.Datos.Test.Rg
-```
-
-### Dummy
-
-Esta transformación de los datos debera emplearse siempre para el correcto funcionamiento del modelo.
-
-```{r}
-# Definir la variable de salida y las variables de entrada
-credit.Var.Salida.Usada <- "V16"
-credit.Vars.Entrada.Usadas <- setdiff(names(credit.Datos.Train), credit.Var.Salida.Usada)
-```
-
-```{r}
-# Convertir la variable de salida a factor (para clasificación)
-credit.Datos.Train.Svm[[credit.Var.Salida.Usada]] <- as.factor(credit.Datos.Train.Svm[[credit.Var.Salida.Usada]])
-credit.Datos.Test.Svm[[credit.Var.Salida.Usada]] <- as.factor(credit.Datos.Test.Svm[[credit.Var.Salida.Usada]])
-
-# Crear el modelo dummy solo para las variables de entrada
-dummy_model <- dummyVars(~ ., data = credit.Datos.Train.Svm[, credit.Vars.Entrada.Usadas], fullRank = TRUE)
-
-# Transformar las variables de entrada a dummies (sin tocar la salida)
-credit.Datos.Train.Dummies <- data.frame(predict(dummy_model, credit.Datos.Train.Svm[, credit.Vars.Entrada.Usadas]))
-credit.Datos.Test.Dummies <- data.frame(predict(dummy_model, credit.Datos.Test.Svm[, credit.Vars.Entrada.Usadas]))
-
-# Añadir la variable de salida de nuevo a los conjuntos transformados
-credit.Datos.Train.Dummies[[credit.Var.Salida.Usada]] <- credit.Datos.Train.Svm[[credit.Var.Salida.Usada]]
-credit.Datos.Test.Dummies[[credit.Var.Salida.Usada]] <- credit.Datos.Test.Svm[[credit.Var.Salida.Usada]]
-
-credit.Datos.Train.Svm <- credit.Datos.Train.Dummies
-credit.Datos.Test.Svm <- credit.Datos.Test.Dummies
+dummy("credit.Datos.svm.Train", "credit.Datos.svm.Test")
+eliminar_varianza_cero_svm("credit.Datos.svm.Train", "credit.Datos.svm.Test")
+pca("credit.Datos.svm.Train", "credit.Datos.svm.Test")
 
 ```
 
-### Eliminar variables con poca varianza
-
-Este paso también debe realizarse en todos los prepocesados que queramos probar.
-
-```{r}
-nzv.Train <- nearZeroVar(credit.Datos.Train.Svm)
-nzv.Train
-credit.Datos.Train.Svm <- credit.Datos.Train.Svm[, -nzv.Train]
-credit.Datos.Test.Svm <- credit.Datos.Test.Svm[, names(credit.Datos.Train.Svm)]
-```
-
-### Transformaciones de relaciones entre variables
-
-#### PCA
-
-```{r}
-credit.PreProc.Pca.Mod <- preProcess(credit.Datos.Train.Svm, method = "pca", thresh = 0.95)  # 95% de la varianza explicada
-credit.PreProc.Pca.Mod
-credit.Datos.Train.Pca <- predict(credit.PreProc.Pca.Mod, credit.Datos.Train.Svm)
-credit.Datos.Test.Pca <- predict(credit.PreProc.Pca.Mod, credit.Datos.Test.Svm)
-```
-
-```{r}
-credit.Datos.Train.Svm <- credit.Datos.Train.Pca
-credit.Datos.Test.Svm <- credit.Datos.Test.Pca
-```
-
-#### ICA
-
-```{r}
-credit.PreProc.Ica.Mod <- preProcess(credit.Datos.Train.Svm, method = "ica", n.comp = 10)  # 10 componentes independientes
-credit.PreProc.Ica.Mod
-credit.Datos.Train.Ica <- predict(credit.PreProc.Ica.Mod, credit.Datos.Train.Svm)
-credit.Datos.Test.Ica <- predict(credit.PreProc.Ica.Mod, credit.Datos.Test.Svm)
-```
-
-```{r}
-#credit.Datos.Train.Svm <- credit.Datos.Train.Ica
-#credit.Datos.Test.Svm <- credit.Datos.Test.Ica
-```
-
-### Entrenamiento
+### Encontrar los mejores hiper-parámetros y ajustar modelo final
 
 ```{r}
 set.seed(1234)
 credit.modelo.svm <- train(
   V16 ~ .,
-  data = credit.Datos.Train.Svm,                    # Datos de entrenamiento
+  data = credit.Datos.svm.Train,                    # Datos de entrenamiento
   method = "svmRadial",                             
-  trControl = trainControl(method = "cv", number = 10),   # Validación cruzada d
+  trControl = credit.trainCtrl.3cv10.resampAll,   # Validación cruzada d
   tuneLength = 20                                         # Probar diferentes valores de parámetros
 )
-```
 
-El porcentaje de acierto del modelo sobre el conjunto de datos entrenamiento del modelo es el siguiente:
-
-```{r}
-train_pred <- predict(credit.modelo.svm, credit.Datos.Train.Svm)
-conf_matrix <- confusionMatrix(train_pred, credit.Datos.Train.Svm$V16)
-accuracy <- conf_matrix$overall['Accuracy']
-accuracy
-```
-
-Sin embargo, este resultado no es válido para evaluar el desempeño real del modelo, ya que mide el rendimiento sobre los datos con los que el modelo ha entrenado. Esto puede generar un resultado más optimista que el error real, ya que el modelo ha "visto" estos datos durante el entrenamiento y puede estar ajustado a ellos.
-
-Es por esto que vamos a medir el rendimiento sobre el conjunto test.
-
-```{r}
 #Mostrar porcentaje final
 # Realizar predicciones en el conjunto de prueba
-predicciones_test <- predict(credit.modelo.svm, credit.Datos.Test.Svm)
+predicciones_test <- predict(credit.modelo.svm, credit.Datos.svm.Test)
 
 # Generar la matriz de confusión
-matriz_confusion <- confusionMatrix(predicciones_test, credit.Datos.Test.Svm[[credit.Var.Salida.Usada]])
+matriz_confusion <- confusionMatrix(predicciones_test, credit.Datos.svm.Test[[credit.Var.Salida.Usada]])
 
 # Extraer el porcentaje de acierto
 porcentaje_acierto <- matriz_confusion$overall["Accuracy"] * 100
@@ -1407,7 +1759,9 @@ porcentaje_acierto <- matriz_confusion$overall["Accuracy"] * 100
 print(paste("Porcentaje de acierto:", round(porcentaje_acierto, 2), "%"))
 ```
 
-### Hiper-parámetros
+Obtenemos un porcentaje de acierto de un 86.13% pero va a tener algo de peeking. Por lo tanto, vamos a hacer un entrenamiento final con hiper-parámetros fijos.
+
+### Entrenamos con hiper-parámetros fijos
 
 Tras probar 20 combinaciones de hiper-parametros vamos a cuales han sido los que finalmente se han elegido para el modelo final.
 
@@ -1427,51 +1781,32 @@ Los hiper-parámetros de nuestro modelo final son los siguientes:
 credit.modelo.svm$bestTune
 ```
 
-### **¿Con qué configuración hemos hecho los entrenamientos?**
+```{r}
+set.seed(2)
+credit.modelo.final.svm <- train(
+  V16 ~ .,
+  data = credit.Datos.svm.Train,
+  method = "svmRadial",
+  trControl =  credit.trainCtrl.none,
+  tuneGrid = data.frame(
+    sigma = 0.03951598,              
+    C = 1         
+  ),
+  metric = "Accuracy",          # Métrica de evaluación
+  verbose = FALSE               # Sin salida en consola
+)
 
-Como ya hemos dicho para que el modelo SVM funcione es necesario haber transformado las variables categoricas y haber eliminado las variables de poca varianza, es por esto q a esa configuracion la llamaremos 'Básica'.
+# Evaluación en el conjunto de prueba
+predictions <- predict(credit.modelo.final.svm, credit.Datos.svm.Test)
 
-+-----------------------------------+---------------+
-| Configuración                     | Acierto       |
-+===================================+===============+
-| Básica                            | ```           |
-|                                   | 85.4 %        |
-|                                   | ```           |
-+-----------------------------------+---------------+
-| Básica + Asimetricas              | ```           |
-|                                   | 44.53 %       |
-|                                   | ```           |
-+-----------------------------------+---------------+
-| Básica + Norm. Center-Scale       | ```           |
-|                                   | 85.4 %        |
-|                                   | ```           |
-+-----------------------------------+---------------+
-| Básica + Norm. Range              | ```           |
-|                                   | 85.4 %        |
-|                                   | ```           |
-+-----------------------------------+---------------+
-| Básica + PCA                      | ```           |
-|                                   | 86.13 %       |
-|                                   | ```           |
-+-----------------------------------+---------------+
-| Básica + ICA                      | ```           |
-|                                   | 82.48 %       |
-|                                   | ```           |
-+-----------------------------------+---------------+
-| Básica + Norm. Center-Scale + PCA | ```           |
-|                                   | 86.13 %       |
-|                                   | ```           |
-+-----------------------------------+---------------+
+# Calcular matriz de confusión y accuracy
+conf_mat <- confusionMatrix(predictions, credit.Datos.svm.Test[[credit.Var.Salida.Usada]])
+accuracy <- conf_mat$overall["Accuracy"]
 
-Tras las ejecuciones, consideramos que para los datos del modelo SVM realizaremos las siguientes acciones:
-
--   Dummys
-
--   Eliminación de variables con poca varianza
-
--   PCA
-
-No será necesario normalizar los datos, ya que PCA incluye un paso de estandarización de las variables de forma implícita.
+# Mostrar resultados
+print(credit.modelo.final.svm)
+print(paste("Porcentaje de Acierto (Modelo Final):", round(accuracy * 100, 2), "%"))
+```
 
 ### Submuestreo con clases desvalanceadas
 
@@ -1479,7 +1814,7 @@ Para ver si nuestro modelo mejora vamos a tratar las clases desvalanceadas en el
 
 ```{r}
 credit.Var.Salida.Usada <- c("V16")
-credit.Vars.Entrada.Usadas <- setdiff(names(credit.Datos.Train.Svm),credit.Var.Salida.Usada)
+credit.Vars.Entrada.Usadas <- setdiff(names(credit.Datos.svm.Train),credit.Var.Salida.Usada)
 ```
 
 #### down-sampling:
@@ -1488,10 +1823,10 @@ Consiste en reducir el número de ejemplos de las clases más frecuentes para ig
 
 ```{r}
 set.seed(12345)
-credit.Datos.Train.svm.downsmpld<-downSample(x=credit.Datos.Train.Svm[credit.Vars.Entrada.Usadas],
-                                       y=credit.Datos.Train.Svm[[credit.Var.Salida.Usada]],
+credit.Datos.Train.svm.downsmpld<-downSample(x=credit.Datos.svm.Train[credit.Vars.Entrada.Usadas],
+                                       y=credit.Datos.svm.Train[[credit.Var.Salida.Usada]],
                                        yname=credit.Var.Salida.Usada)
-credit.Datos.Test.svm.downsmpld <- credit.Datos.Test.Svm
+credit.Datos.Test.svm.downsmpld <- credit.Datos.svm.Test
 ```
 
 #### up-sampling:
@@ -1500,10 +1835,10 @@ En este caso hace lo contrario, remuestrea (con reemplazamiento) la clase minori
 
 ```{r}
 set.seed(1234)
-credit.Datos.Train.svm.upsmpld<-upSample(x=credit.Datos.Train.Svm[credit.Vars.Entrada.Usadas],
-                                   y=credit.Datos.Train.Svm[[credit.Var.Salida.Usada]],
+credit.Datos.Train.svm.upsmpld<-upSample(x=credit.Datos.svm.Train[credit.Vars.Entrada.Usadas],
+                                   y=credit.Datos.svm.Train[[credit.Var.Salida.Usada]],
                                    yname=credit.Var.Salida.Usada)
-credit.Datos.Test.svm.upsmpld<- credit.Datos.Test.Svm
+credit.Datos.Test.svm.upsmpld<- credit.Datos.svm.Test
 ```
 
 Creamos y probamos un modelo para cada una de estas configuraciones:
@@ -1513,9 +1848,14 @@ set.seed(1234)
 credit.modelo.svm.downsmpld <- train(
   V16 ~ .,  # Variable de salida ~ Variables de entrada
   data = credit.Datos.Train.svm.downsmpld,                                    # Datos de entrenamiento
-  method = "svmRadial",                                          # Especificamos el método SVM con kernel radial
-  trControl = trainControl(method = "cv", number = 10),           # Validación cruzada de 5 pliegues
-  tuneLength = 10                                                # Probar diferentes valores de parámetros
+  method = "svmRadial",
+  trControl =  credit.trainCtrl.none,
+  tuneGrid = data.frame(
+    sigma = 0.03951598,              
+    C = 1         
+  ),
+  metric = "Accuracy",          # Métrica de evaluación
+  verbose = FALSE
 )
 #Mostrar porcentaje final
 # Realizar predicciones en el conjunto de prueba
@@ -1536,9 +1876,14 @@ set.seed(1234)
 credit.modelo.svm.upsmpld <- train(
   V16 ~ .,  # Variable de salida ~ Variables de entrada
   data = credit.Datos.Train.svm.upsmpld,                                    # Datos de entrenamiento
-  method = "svmRadial",                                          # Especificamos el método SVM con kernel radial
-  trControl = trainControl(method = "cv", number = 10),           # Validación cruzada de 5 pliegues
-  tuneLength = 10                                                # Probar diferentes valores de parámetros
+  method = "svmRadial",
+  trControl =  credit.trainCtrl.none,
+  tuneGrid = data.frame(
+    sigma = 0.03951598,              
+    C = 1         
+  ),
+  metric = "Accuracy",          # Métrica de evaluación
+  verbose = FALSE
 )
 #Mostrar porcentaje final
 # Realizar predicciones en el conjunto de prueba
@@ -1554,22 +1899,24 @@ porcentaje_acierto <- matriz_confusion$overall["Accuracy"] * 100
 print(paste("Porcentaje de acierto:", round(porcentaje_acierto, 2), "%"))
 ```
 
+Como vemos, estos modelos no mejoran el porcentaje de acierto que teniamos.
+
 ### Eliminación de variables
 
 ```{r}
 #Ver importancia de las variables de entrada
 #Metodo -> varImp()
-varImp(credit.modelo.svm)
+varImp(credit.modelo.final.svm)
 #Ver seleccion de variables del modelo 
 #Metodo -> predictors(modelo$finalModel)
-predictors(credit.modelo.svm$finalModel)
+predictors(credit.modelo.final.svm)
 ```
 
 Como vemos la variable PC5 no tiene importancia a la hora de realizar la clasificación. Vamos a probar a eliminarla para ver si nuestro modelo mejora.
 
 ```{r}
-credit.Datos.Train.svm.Reduc <- credit.Datos.Train.Svm
-credit.Datos.Test.svm.Reduc <- credit.Datos.Test.Svm
+credit.Datos.Train.svm.Reduc <- credit.Datos.svm.Train
+credit.Datos.Test.svm.Reduc <- credit.Datos.svm.Test
 credit.Datos.Train.svm.Reduc$PC5 <- NULL
 credit.Datos.Test.svm.Reduc$PC5 <- NULL
 ```
@@ -1579,9 +1926,14 @@ set.seed(1234)
 credit.modelo.svm.Reduc <- train(
   V16 ~ .,  # Variable de salida ~ Variables de entrada
   data = credit.Datos.Train.svm.Reduc,                                    # Datos de entrenamiento
-  method = "svmRadial",                                          # Especificamos el método SVM con kernel radial
-  trControl = trainControl(method = "cv", number = 10),           # Validación cruzada de 5 pliegues
-  tuneLength = 10                                                # Probar diferentes valores de parámetros
+  method = "svmRadial",
+  trControl =  credit.trainCtrl.none,
+  tuneGrid = data.frame(
+    sigma = 0.03951598,              
+    C = 1         
+  ),
+  metric = "Accuracy",          # Métrica de evaluación
+  verbose = FALSE
 )
 
 predicciones_test <- predict(credit.modelo.svm.Reduc, credit.Datos.Test.svm.Reduc)
@@ -1596,16 +1948,16 @@ porcentaje_acierto <- matriz_confusion$overall["Accuracy"] * 100
 print(paste("Porcentaje de acierto:", round(porcentaje_acierto, 2), "%"))
 ```
 
-Como podemos observar la eliminación de la variable PC5, que no tenía impotancia el modelo final entrenado, supone un aumento en el porcentaje de acierto.
+Como podemos observar la eliminación de la variable PC5, que no tenía impotancia el modelo final entrenado, no supone un aumento en el porcentaje de acierto.
 
 ### Conclusión
 
-Para la configuración de nuestro modelo SVM, el mejor resultado lo obtienen los datos tras haber hecho Dummys, eliminado las variables con poca varianza y habiendo aplicado PCA. Tras todo esto eliminamos PC5 y de esta forma obtenemos un porcentaje de acierto de 87.59%.
+Para la configuración de nuestro modelo SVM, el mejor resultado lo obtienen los datos tras haber hecho Dummys, eliminado las variables con poca varianza y habiendo aplicado PCA. De esta forma obtenemos un porcentaje de acierto de 85.4%.
 
 El modelo final sería:
 
 ```{r}
-print(credit.modelo.svm.Reduc)
+print(credit.modelo.final.svm)
 ```
 
 ## KNN
@@ -1621,117 +1973,127 @@ No nos centraremos tanto en la reducción de la dimensionalidad, ya que KNN no s
 <https://www.datacamp.com/tutorial/preprocessing-in-data-science-part-1-centering-scaling-and-knn>
 
 ```{r}
-credit.Datos.Train.Knn <- credit.Datos.Train
-credit.Datos.Test.Knn <- credit.Datos.Test
+credit.Datos.knn.Train <- credit.Datos.Train
+credit.Datos.knn.Test <- credit.Datos.Test
 ```
+
+### Configuración
+
+Para la configuración de knn vamos a usar la misma que svm
 
 ```{r}
-credit.Var.Salida.Usada <- c("V16")
-credit.Var.Entrada.Usadas <- setdiff(names(credit.Datos.Train.Knn),credit.Var.Salida.Usada)
+configuracion_knn <- list(
+  conf1  = list("dummy"),
+  conf2  = list("norm_center_scale", "dummy"),
+  conf3  = list("norm_range", "dummy"),
+  conf4  = list("dummy", "pca"),
+  conf5  = list("dummy", "ica"),
+  conf6  = list("norm_center_scale", "dummy", "pca"),
+  conf7  = list("norm_center_scale", "dummy", "ica"),
+  conf8  = list("norm_range", "dummy", "var_cero", "pca"),
+  conf9  = list("norm_range", "dummy", "var_cero", "ica"),
+  conf10 = list("norm_center_scale", "dummy", "var_cero"),
+  conf11 = list("norm_range", "dummy", "var_cero"),
+  conf12 = list("dummy", "var_cero", "pca"),
+  conf13 = list("dummy", "var_cero", "ica")
+)
 ```
 
-### Normalización
-
-#### Center-Scale
+### Almacenar modelos entrenados
 
 ```{r}
-credit.preProc.CS.Mod<-preProcess(credit.Datos.Train.Knn[credit.Var.Entrada.Usadas],
-                                  method=c("center","scale"))
-credit.Datos.Train.CS <- predict(credit.preProc.CS.Mod,credit.Datos.Train.Knn)
-credit.Datos.Test.CS <- predict(credit.preProc.CS.Mod,credit.Datos.Test.Knn)
+modelos_entrenados_knn <- list()
 ```
+
+### Ejecutamos todas las configuraciones
 
 ```{r}
-#credit.Datos.Train.Knn <- credit.Datos.Train.CS
-#credit.Datos.Test.Knn <- credit.Datos.Test.CS
+for (i in seq_along(configuracion_knn)) {
+  # Crear nombre de configuración
+  nombre_config <- names(configuracion_knn)[i]
+  preprocesamientos <- configuracion_knn[[i]]
+  
+  # Restaurar bases de datos originales
+  credit.Datos.knn.Train <- credit.Datos.Train
+  credit.Datos.knn.Test <- credit.Datos.Test
+  
+  # Aplicar configuración
+  ejecutar_configuracion_svm(preprocesamientos, "credit.Datos.knn.Train", "credit.Datos.knn.Test")
+
+  
+  # Definir variables de entrada y salida
+  credit.Var.Salida.Usada <- "V16"
+  credit.Vars.Entrada.Usadas <- setdiff(names(credit.Datos.knn.Train), credit.Var.Salida.Usada)
+  
+  # Entrenar el modelo
+  modelo_entrenado <- train(
+    x = credit.Datos.knn.Train[, credit.Vars.Entrada.Usadas],
+    y = credit.Datos.knn.Train[[credit.Var.Salida.Usada]],
+    method = "knn",
+    trControl = credit.trainCtrl,
+    tuneGrid = data.frame(
+      k = 13       
+    ),
+    metric = "Accuracy"
+  )
+  
+  # Guardar modelo
+  modelos_entrenados_knn[[nombre_config]] <- modelo_entrenado
+  
+  # Mostrar información del modelo actual
+  print(paste("Modelo entrenado para la configuración:", nombre_config))
+}
 ```
 
-#### Range
+### Interpretamos los resultados obtenidos
 
 ```{r}
-credit.preProc.CS.Mod<-preProcess(credit.Datos.Train.Knn[credit.Var.Entrada.Usadas],
-                                  method=c("range"))
-credit.Datos.Train.Rg <- predict(credit.preProc.CS.Mod,credit.Datos.Train.Knn)
-credit.Datos.Test.Rg <- predict(credit.preProc.CS.Mod,credit.Datos.Test.Knn) 
+# Comparar modelos usando resamples()
+resultados_resampling <- resamples(modelos_entrenados_knn)
+
+# Mostrar estadísticas resumidas
+summary(resultados_resampling)
+
+# Graficar resultados
+bwplot(resultados_resampling, metric = "Accuracy")
+dotplot(resultados_resampling, metric = "Accuracy")
+
+# Prueba estadística de diferencias
+diferencias_modelos <- diff(resultados_resampling)
+summary(diferencias_modelos)
 ```
+
+Aunque no podemos asegurar caul es la mejor ya que los intervalos coincide, nos vamos a quedar con la tercera configuración.
 
 ```{r}
-credit.Datos.Train.Knn <- credit.Datos.Train.Rg
-credit.Datos.Test.Knn <- credit.Datos.Test.Rg
+credit.Datos.knn.Train <- credit.Datos.Train
+credit.Datos.knn.Test <- credit.Datos.Test
+
+norm_range("credit.Datos.knn.Train", "credit.Datos.knn.Test")
+dummy("credit.Datos.knn.Train", "credit.Datos.knn.Test")
+eliminar_varianza_cero_svm("credit.Datos.knn.Train", "credit.Datos.knn.Test")
+
 ```
 
-### Dummys
-
-```{r}
-# Definir la variable de salida y las variables de entrada
-credit.Var.Salida.Usada <- "V16"
-credit.Vars.Entrada.Usadas <- setdiff(names(credit.Datos.Train.Knn), credit.Var.Salida.Usada)
-
-# Convertir la variable de salida a factor (para clasificación)
-credit.Datos.Train.Knn[[credit.Var.Salida.Usada]] <- as.factor(credit.Datos.Train.Knn[[credit.Var.Salida.Usada]])
-credit.Datos.Test.Knn[[credit.Var.Salida.Usada]] <- as.factor(credit.Datos.Test.Knn[[credit.Var.Salida.Usada]])
-
-# Crear el modelo dummy solo para las variables de entrada
-dummy_model <- dummyVars(~ ., data = credit.Datos.Train.Knn[, credit.Vars.Entrada.Usadas], fullRank = TRUE)
-
-# Transformar las variables de entrada a dummies (sin tocar la salida)
-credit.Datos.Train.Dummies <- data.frame(predict(dummy_model, credit.Datos.Train.Knn[, credit.Vars.Entrada.Usadas]))
-credit.Datos.Test.Dummies <- data.frame(predict(dummy_model, credit.Datos.Test.Knn[, credit.Vars.Entrada.Usadas]))
-
-# Añadir la variable de salida de nuevo a los conjuntos transformados
-credit.Datos.Train.Dummies[[credit.Var.Salida.Usada]] <- credit.Datos.Train.Knn[[credit.Var.Salida.Usada]]
-credit.Datos.Test.Dummies[[credit.Var.Salida.Usada]] <- credit.Datos.Test.Knn[[credit.Var.Salida.Usada]]
-
-credit.Datos.Train.Knn <- credit.Datos.Train.Dummies
-credit.Datos.Test.Knn <- credit.Datos.Test.Dummies
-```
-
-### Eliminar variables con poca varianza
-
-```{r}
-nzv.Train <- nearZeroVar(credit.Datos.Train.Knn)
-nzv.Train
-credit.Datos.Train.Vari <- credit.Datos.Train.Knn[, -nzv.Train]
-credit.Datos.Test.Vari <- credit.Datos.Test.Knn[, names(credit.Datos.Train.Knn)]
-```
-
-```{r}
-#credit.Datos.Train.Knn <- credit.Datos.Train.Vari
-#credit.Datos.Test.Knn <- credit.Datos.Test.Vari
-```
-
-### Entrenamiento
+### Encontrar los mejores hiper-parámetros y ajustar modelo final
 
 ```{r}
 # Configurar el modelo KNN
 set.seed(1234)
 # Entrenamiento del modelo k-NN
-credit.modelo.knn <- train(V16 ~ .,  # Usamos "Class" como variable de salida
-                           data = credit.Datos.Train.Knn,  # Datos de entrenamiento
-                           method = "knn",  # Especificamos k-NN
-                           trControl = trainControl(method = "cv", number = 10),  # Validación cruzada de 10 pliegues
-                           tuneLength = 20)
+credit.modelo.knn <- train(
+  V16 ~ .,  
+  data = credit.Datos.knn.Train,  
+  method = "knn",  # Especificamos k-NN
+  trControl = credit.trainCtrl,   
+  tuneLength = 20)
 
-```
-
-El porcentaje de acierto del modelo sobre el conjunto de datos entrenamiento del modelo es el siguiente:
-
-```{r}
-train_pred <- predict(credit.modelo.knn, credit.Datos.Train.Knn)
-conf_matrix <- confusionMatrix(train_pred, credit.Datos.Train.Knn$V16)
-accuracy <- conf_matrix$overall['Accuracy']
-accuracy
-```
-
-Como ya sabemos ese proporcionará un resultado más optimista que el real. El resultado final del modelo sería:
-
-```{r}
 #Mostrar porcentaje final
 # Realizar predicciones en el conjunto de prueba
-predicciones_test <- predict(credit.modelo.knn, credit.Datos.Test.Knn)
+predicciones_test <- predict(credit.modelo.knn, credit.Datos.knn.Test)
 
 # Generar la matriz de confusión
-matriz_confusion <- confusionMatrix(predicciones_test, credit.Datos.Test.Knn[[credit.Var.Salida.Usada]])
+matriz_confusion <- confusionMatrix(predicciones_test, credit.Datos.knn.Test[[credit.Var.Salida.Usada]])
 
 # Extraer el porcentaje de acierto
 porcentaje_acierto <- matriz_confusion$overall["Accuracy"] * 100
@@ -1740,7 +2102,7 @@ porcentaje_acierto <- matriz_confusion$overall["Accuracy"] * 100
 print(paste("Porcentaje de acierto:", round(porcentaje_acierto, 2), "%"))
 ```
 
-### Hiper-Parametros
+### Entrenamos con hiper-parámetros fijos
 
 Tras probar 20 combinaciones de hiper-parametros vamos a cuales han sido los que finalmente se han elegido para el modelo final.
 
@@ -1758,49 +2120,34 @@ El parámetro k en K-Nearest Neighbors (KNN) representa el número de vecinos m�
 credit.modelo.knn$bestTune
 ```
 
-En nuestro caso k=13 proporcionara un equilibrio entre la sensibilidad al ruido y la generalidad.
+En nuestro caso k=7 proporcionara un equilibrio entre la sensibilidad al ruido y la generalidad.
 
-### **¿Con qué configuración hemos hecho los entrenamientos?**
+Vamos a entrenar un modelo finjando el número de vecinos mas cercano.
 
-Para el modelo knn es necesario haber hecho dummys, una vez hecho esto probamos varios preprocesados.
+```{r}
+set.seed(2)
+credit.modelo.final.knn <- train(
+  V16 ~ .,
+  data = credit.Datos.knn.Train,
+  method = "knn",
+  trControl =  credit.trainCtrl.none,
+  tuneGrid = data.frame(
+    k = 7         
+  ),
+  metric = "Accuracy"          # Métrica de evaluación
+)
 
-+------------------------------------------+---------------+
-| Configuración                            | Acierto       |
-+==========================================+===============+
-| Dummy                                    | ```           |
-|                                          | 71.53 %       |
-|                                          | ```           |
-+------------------------------------------+---------------+
-| Dummy + Asimetricas                      | ```           |
-|                                          | 82.48 %       |
-|                                          | ```           |
-+------------------------------------------+---------------+
-| Dummy + Norm. Center-Scale               | ```           |
-|                                          | 86.86 %       |
-|                                          | ```           |
-+------------------------------------------+---------------+
-| Dummy + Norm. Range                      | ```           |
-|                                          | 87.59 %       |
-|                                          | ```           |
-+------------------------------------------+---------------+
-| Dummy + Norm. Range + Norm. Center-Scale | ```           |
-|                                          | 87.59 %       |
-|                                          | ```           |
-+------------------------------------------+---------------+
-| Dummy + Eliminar poca varianza           | ```           |
-|                                          | 71.53 %       |
-|                                          | ```           |
-+------------------------------------------+---------------+
-| Dummy+ Norm. Center-Scale + Asimetricas  | ```           |
-|                                          | 84.67 %       |
-|                                          | ```           |
-+------------------------------------------+---------------+
-| Dummy+ Norm. Center-Scale + PCA          | ```           |
-|                                          | 80.29 %       |
-|                                          | ```           |
-+------------------------------------------+---------------+
+# Evaluación en el conjunto de prueba
+predictions <- predict(credit.modelo.final.knn, credit.Datos.knn.Test)
 
-En este caso, el mejor resultado se obtiene después de haber normalizado los datos mediante el método Range y haber transformado las variables categóricas en dummys.
+# Calcular matriz de confusión y accuracy
+conf_mat <- confusionMatrix(predictions, credit.Datos.knn.Test[[credit.Var.Salida.Usada]])
+accuracy <- conf_mat$overall["Accuracy"]
+
+# Mostrar resultados
+print(credit.modelo.final.knn)
+print(paste("Porcentaje de Acierto (Modelo Final):", round(accuracy * 100, 2), "%"))
+```
 
 ### Submuestreo con clases desvalanceadas
 
@@ -1808,7 +2155,7 @@ Para ver si nuestro modelo mejora vamos a tratar las clases desvalanceadas en el
 
 ```{r}
 credit.Var.Salida.Usada <- c("V16")
-credit.Vars.Entrada.Usadas <- setdiff(names(credit.Datos.Train.Knn),credit.Var.Salida.Usada)
+credit.Vars.Entrada.Usadas <- setdiff(names(credit.Datos.knn.Train),credit.Var.Salida.Usada)
 ```
 
 #### down-sampling:
@@ -1817,10 +2164,10 @@ Consiste en reducir el número de ejemplos de las clases más frecuentes para ig
 
 ```{r}
 set.seed(12345)
-credit.Datos.Train.knn.downsmpld<-downSample(x=credit.Datos.Train.Knn[credit.Vars.Entrada.Usadas],
-                                       y=credit.Datos.Train.Knn[[credit.Var.Salida.Usada]],
+credit.Datos.Train.knn.downsmpld<-downSample(x=credit.Datos.knn.Train[credit.Vars.Entrada.Usadas],
+                                       y=credit.Datos.knn.Train[[credit.Var.Salida.Usada]],
                                        yname=credit.Var.Salida.Usada)
-credit.Datos.Test.knn.downsmpld <- credit.Datos.Test.Knn
+credit.Datos.Test.knn.downsmpld <- credit.Datos.knn.Test
 ```
 
 #### up-sampling:
@@ -1829,10 +2176,10 @@ En este caso hace lo contrario, remuestrea (con reemplazamiento) la clase minori
 
 ```{r}
 set.seed(1234)
-credit.Datos.Train.knn.upsmpld<-upSample(x=credit.Datos.Train.Knn[credit.Vars.Entrada.Usadas],
-                                   y=credit.Datos.Train.Knn[[credit.Var.Salida.Usada]],
+credit.Datos.Train.knn.upsmpld<-upSample(x=credit.Datos.knn.Train[credit.Vars.Entrada.Usadas],
+                                   y=credit.Datos.knn.Train[[credit.Var.Salida.Usada]],
                                    yname=credit.Var.Salida.Usada)
-credit.Datos.Test.knn.upsmpld<- credit.Datos.Test.Knn
+credit.Datos.Test.knn.upsmpld<- credit.Datos.knn.Test
 ```
 
 Creamos y probamos un modelo para cada una de estas configuraciones:
@@ -1842,9 +2189,12 @@ set.seed(1234)
 credit.modelo.knn.downsmpld <- train(
   V16 ~ .,  # Variable de salida ~ Variables de entrada
   data = credit.Datos.Train.knn.downsmpld,                                    # Datos de entrenamiento
-  method = "svmRadial",                                          # Especificamos el método SVM con kernel radial
-  trControl = trainControl(method = "cv", number = 10),           # Validación cruzada de 5 pliegues
-  tuneLength = 10                                                # Probar diferentes valores de parámetros
+  method = "knn",
+  trControl =  credit.trainCtrl.none,
+  tuneGrid = data.frame(
+    k = 7         
+  ),
+  metric = "Accuracy" 
 )
 #Mostrar porcentaje final
 # Realizar predicciones en el conjunto de prueba
@@ -1865,9 +2215,12 @@ set.seed(1234)
 credit.modelo.knn.upsmpld <- train(
   V16 ~ .,  # Variable de salida ~ Variables de entrada
   data = credit.Datos.Train.knn.upsmpld,                                    # Datos de entrenamiento
-  method = "svmRadial",                                          # Especificamos el método SVM con kernel radial
-  trControl = trainControl(method = "cv", number = 10),           # Validación cruzada de 5 pliegues
-  tuneLength = 10                                                # Probar diferentes valores de parámetros
+  method = "knn",
+  trControl =  credit.trainCtrl.none,
+  tuneGrid = data.frame(
+    k = 7         
+  ),
+  metric = "Accuracy" 
 )
 #Mostrar porcentaje final
 # Realizar predicciones en el conjunto de prueba
@@ -1888,17 +2241,17 @@ print(paste("Porcentaje de acierto:", round(porcentaje_acierto, 2), "%"))
 ```{r}
 #Ver importancia de las variables de entrada
 #Metodo -> varImp()
-varImp(credit.modelo.knn)
+varImp(credit.modelo.final.knn)
 #Ver seleccion de variables del modelo 
 #Metodo -> predictors(modelo$finalModel)
-predictors(credit.modelo.knn$finalModel)
+predictors(credit.modelo.final.knn)
 ```
 
 En este caso, no hay variables que no se empleen o que tengan poca importancia.
 
 ### Conclusión
 
-Para el modelo de Knn, el mejor resultado lo obtenemos tras una normalización y la transformación de las variables categóricas. El modelo obtendría un porcentaje de acierto de 87.59 %.
+Para el modelo de Knn, el mejor resultado lo obtenemos tras una normalización y la transformación de las variables categóricas y la eliminación de la variables con varianza 0. El modelo obtendría un porcentaje de acierto de 87.59 %.
 
 ```{r}
 print(credit.modelo.knn)
